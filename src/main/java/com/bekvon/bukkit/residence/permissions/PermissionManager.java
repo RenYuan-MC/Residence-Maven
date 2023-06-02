@@ -12,6 +12,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -46,7 +48,7 @@ public class PermissionManager {
     private PermissionGroup defaultGroup = null;
     private Residence plugin;
 
-    private int autoCacheClearId = 0;
+    private ScheduledTask autoCacheClearId = null;
     private static final int cacheClearDelay = 600;
 
     public PermissionManager(Residence plugin) {
@@ -63,13 +65,13 @@ public class PermissionManager {
     }
 
     public void startCacheClearScheduler() {
-	autoCacheClearId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, cacheClear, cacheClearDelay * 20L, cacheClearDelay * 20L);
+	autoCacheClearId = ResScheduler.scheduleSyncRepeatingTask(plugin, cacheClear, cacheClearDelay * 20L, cacheClearDelay * 20L);
     }
 
     public void stopCacheClearScheduler() {
 	try {
-	    if (autoCacheClearId > 0)
-		Bukkit.getScheduler().cancelTask(autoCacheClearId);
+	    if (autoCacheClearId != null)
+		ResScheduler.cancelTask(autoCacheClearId);
 	} catch (Throwable e) {
 	}
     }

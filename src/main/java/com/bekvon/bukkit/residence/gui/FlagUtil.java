@@ -2,6 +2,7 @@ package com.bekvon.bukkit.residence.gui;
 
 import java.util.Set;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -54,7 +55,7 @@ public class FlagUtil {
                 CMIAsyncHead ahead = new CMIAsyncHead() {
                     @Override
                     public void afterAsyncUpdate(ItemStack item) {
-                        Bukkit.getScheduler().runTask(CMI.getInstance(), () -> {
+                        ResScheduler.runTask(CMI.getInstance(), () -> {
                             flagData.addFlagButton(oneFlag.toLowerCase(), item);
                         });
                     }

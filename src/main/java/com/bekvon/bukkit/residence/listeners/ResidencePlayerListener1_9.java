@@ -1,5 +1,6 @@
 package com.bekvon.bukkit.residence.listeners;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -48,7 +49,7 @@ public class ResidencePlayerListener1_9 implements Listener {
 	plugin.msg(player, lm.Flag_Deny, Flags.elytra);
 
 	event.setCancelled(true);
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+	ResScheduler.scheduleSyncDelayedTask(plugin, () -> {
 	    player.setGliding(false);
 	}, 2L);
     }

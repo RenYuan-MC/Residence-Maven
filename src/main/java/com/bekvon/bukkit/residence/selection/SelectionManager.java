@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -528,7 +530,7 @@ public class SelectionManager {
 	if (tv != null) {
 	    tv.cancelAll();
 	}
-	Bukkit.getScheduler().runTask(plugin, () -> {
+	ResScheduler.runTask(plugin, () -> {
 
 	    ResidenceSelectionVisualizationEvent ev = new ResidenceSelectionVisualizationEvent(player, v.getAreas(), v.getErrorAreas());
 	    Bukkit.getPluginManager().callEvent(ev);
@@ -539,7 +541,7 @@ public class SelectionManager {
 	    vMap.put(player.getUniqueId(), v);
 	    if (!plugin.isEnabled())
 		return;
-	    v.setBaseShedId(Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+	    v.setBaseShedId(ResScheduler.runTaskAsynchronously(plugin, new Runnable() {
 		@Override
 		public void run() {
 		    if (!v.getAreas().isEmpty())
@@ -547,7 +549,7 @@ public class SelectionManager {
 		    if (!v.getErrorAreas().isEmpty())
 			MakeBorders(player, true);
 		}
-	    }).getTaskId());
+	    }));
 
 	});
     }
@@ -756,10 +758,10 @@ public class SelectionManager {
 		double TY = cuboidArea.getYSize() - 1;
 		double TZ = cuboidArea.getZSize() - 1;
 
-		if (!error && v.getId() != -1) {
-		    Bukkit.getScheduler().cancelTask(v.getId());
-		} else if (error && v.getErrorId() != -1) {
-		    Bukkit.getScheduler().cancelTask(v.getErrorId());
+		if (!error && v.getId() != null) {
+		    ResScheduler.cancelTask(v.getId());
+		} else if (error && v.getErrorId() != null) {
+		    ResScheduler.cancelTask(v.getErrorId());
 		}
 
 		locList.addAll(GetLocationsWallsByData(loc, TX, TY, TZ, cuboidArea.getLowLocation().clone(), Sides, Range));
@@ -778,7 +780,7 @@ public class SelectionManager {
 
 	if (!plugin.isEnabled())
 	    return false;
-	Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+	ResScheduler.runTaskAsynchronously(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 
@@ -824,7 +826,7 @@ public class SelectionManager {
 	if (v.getStart() + plugin.getConfigManager().getVisualizerShowFor() < System.currentTimeMillis())
 	    return false;
 
-	int scid = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+		ScheduledTask scid = ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		if (player.isOnline()) {

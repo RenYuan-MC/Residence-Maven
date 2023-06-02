@@ -299,7 +299,7 @@ public class RandomTp {
     }
 
     public void performDelaydTp(final Location loc, final Player targetPlayer) {
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+	ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		if (!plugin.getTeleportDelayMap().contains(targetPlayer.getName()) && plugin.getConfigManager().getTeleportDelay() > 0)

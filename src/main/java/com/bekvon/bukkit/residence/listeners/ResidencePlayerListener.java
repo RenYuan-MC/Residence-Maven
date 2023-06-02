@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -108,7 +110,7 @@ public class ResidencePlayerListener implements Listener {
 
     private Residence plugin;
 
-    private int locationChangeCheckId = -1;
+    private ScheduledTask locationChangeCheckId = null;
 
     protected Map<UUID, Long> lastCheck = new HashMap<UUID, Long>();
     protected Map<UUID, Vector> lastLocation = new HashMap<UUID, Vector>();
@@ -144,7 +146,7 @@ public class ResidencePlayerListener implements Listener {
         }
         this.plugin = plugin;
 
-        locationChangeCheckId = Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, locationChangeCheck, 20L, 15 * 20L);
+        locationChangeCheckId = ResScheduler.scheduleSyncRepeatingTask(plugin, locationChangeCheck, 20L, 15 * 20L);
     }
 
     public void reload() {
@@ -353,7 +355,7 @@ public class ResidencePlayerListener implements Listener {
         if (!plugin.getConfigManager().isRentInformOnEnding())
             return;
         final Player player = event.getPlayer();
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+        ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
                 if (!player.isOnline())
@@ -807,7 +809,7 @@ public class ResidencePlayerListener implements Listener {
         plugin.getSignUtil().getSigns().addSign(signInfo);
         plugin.getSignUtil().saveSigns();
 
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+        ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
                 plugin.getSignUtil().CheckSign(residence);
@@ -1964,7 +1966,7 @@ public class ResidencePlayerListener implements Listener {
         }
 
         if (res.getPermissions().has(Flags.respawn, false) && Bukkit.getVersion().toString().contains("Spigot"))
-            Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+            ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -2028,7 +2030,7 @@ public class ResidencePlayerListener implements Listener {
             player.setAllowFlight(false);
         } else {
             player.setAllowFlight(true);
-            Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            ResScheduler.scheduleSyncDelayedTask(plugin, () -> {
                 ClaimedResidence res = plugin.getResidenceManager().getByLoc(player.getLocation());
                 if (res != null && res.getPermissions().playerHas(player, Flags.fly, FlagCombo.OnlyTrue) && player.isOnline()) {
                     player.setAllowFlight(true);
@@ -2336,7 +2338,7 @@ public class ResidencePlayerListener implements Listener {
         }
 
         if (!plugin.getAutoSelectionManager().getList().isEmpty()) {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+            ResScheduler.runTaskAsynchronously(plugin, new Runnable() {
                 @Override
                 public void run() {
                     plugin.getAutoSelectionManager().UpdateSelection(player);

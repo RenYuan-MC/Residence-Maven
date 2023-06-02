@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -38,7 +40,7 @@ public class Pl3xMapManager {
 
     public Pl3xMap api;
 
-    private int schedId = -1;
+    private ScheduledTask schedId = null;
 //    SimpleLayerProvider provider = null;
     HashMap<String, SimpleLayerProvider> providers = new HashMap<String, SimpleLayerProvider>();
 
@@ -52,13 +54,13 @@ public class Pl3xMapManager {
 	if (res == null)
 	    return;
 
-	if (schedId != -1)
-	    Bukkit.getServer().getScheduler().cancelTask(schedId);
+	if (schedId != null)
+	    ResScheduler.cancelTask(schedId);
 
-	schedId = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(this.plugin, new Runnable() {
+	schedId = ResScheduler.scheduleSyncDelayedTask(this.plugin, new Runnable() {
 	    @Override
 	    public void run() {
-		schedId = -1;
+		schedId = null;
 
 		handleResidenceAdd(res.getName(), res, deep);
 		return;

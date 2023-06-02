@@ -3,6 +3,7 @@ package com.bekvon.bukkit.residence.listeners;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
@@ -51,7 +52,7 @@ public class ResidenceLWCListener implements com.griefcraft.scripting.Module {
 	if (Version.isCurrentLower(Version.v1_13_R1))
 	    return;
 
-	Bukkit.getScheduler().runTaskAsynchronously(Residence.getInstance(), new Runnable() {
+	ResScheduler.runTaskAsynchronously(Residence.getInstance(), new Runnable() {
 	    @Override
 	    public void run() {
 		long time = System.currentTimeMillis();

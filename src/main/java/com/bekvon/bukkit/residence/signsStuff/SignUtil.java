@@ -14,6 +14,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -135,7 +136,7 @@ public class SignUtil {
     }
 
     public void CheckSign(final ClaimedResidence res, int time) {
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(this.plugin, new Runnable() {
+        ResScheduler.scheduleSyncDelayedTask(this.plugin, new Runnable() {
             @Override
             public void run() {
                 CheckSign(res);

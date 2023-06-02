@@ -3,6 +3,7 @@ package com.bekvon.bukkit.residence.chat;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
@@ -41,7 +42,7 @@ public class ChatChannel {
     }
 
     public void chat(String sourcePlayer, String message) {
-	Bukkit.getScheduler().runTask(Residence.getInstance(), () -> {
+	ResScheduler.runTask(Residence.getInstance(), () -> {
 	    Server serv = Residence.getInstance().getServ();
 	    ResidenceChatEvent cevent = new ResidenceChatEvent(Residence.getInstance().getResidenceManager().getByName(channelName), serv.getPlayer(sourcePlayer), this.ChatPrefix, message,
 		this.ChannelColor);

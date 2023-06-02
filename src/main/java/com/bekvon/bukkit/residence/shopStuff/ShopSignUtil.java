@@ -12,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -328,7 +330,7 @@ public class ShopSignUtil {
     }
 
     public boolean BoardUpdateDelayed() {
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+	ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		BoardUpdate();

@@ -20,7 +20,7 @@ public class SlimefunManager {
     private static int times = 0;
 
     public static void register(Residence residence) {
-	Bukkit.getServer().getScheduler().runTaskTimer(residence, task -> {
+	Bukkit.getGlobalRegionScheduler().runAtFixedRate(residence, task -> {
 	    ++times;
 	    if (times >= TRIES) {
 		residence.consoleMessage("&cFailed to initialize SlimeFun support");

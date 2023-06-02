@@ -26,6 +26,8 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.bekvon.bukkit.residence.utils.*;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -119,14 +121,8 @@ import com.bekvon.bukkit.residence.slimeFun.SlimefunManager;
 import com.bekvon.bukkit.residence.text.Language;
 import com.bekvon.bukkit.residence.text.help.HelpEntry;
 import com.bekvon.bukkit.residence.text.help.InformationPager;
-import com.bekvon.bukkit.residence.utils.CrackShot;
-import com.bekvon.bukkit.residence.utils.FileCleanUp;
-import com.bekvon.bukkit.residence.utils.RandomTp;
-import com.bekvon.bukkit.residence.utils.Sorting;
-import com.bekvon.bukkit.residence.utils.TabComplete;
 import com.bekvon.bukkit.residence.vaultinterface.ResidenceVaultAdapter;
 import com.earth2me.essentials.Essentials;
-import com.residence.mcstats.Metrics;
 import com.residence.zip.ZipLibrary;
 
 import fr.crafter.tickleman.realeconomy.RealEconomy;
@@ -203,19 +199,18 @@ public class Residence extends JavaPlugin {
     protected EconomyInterface economy;
     private int saveVersion = 1;
     public File dataFolder;
-    protected int leaseBukkitId = -1;
-    protected int rentBukkitId = -1;
-    protected int healBukkitId = -1;
-    protected int feedBukkitId = -1;
-    protected int effectRemoveBukkitId = -1;
+    protected ScheduledTask leaseBukkitId = null;
+    protected ScheduledTask rentBukkitId = null;
+    protected ScheduledTask healBukkitId = null;
+    protected ScheduledTask feedBukkitId = null;
+    protected ScheduledTask effectRemoveBukkitId = null;
 
-    protected int DespawnMobsBukkitId = -1;
+    protected ScheduledTask DespawnMobsBukkitId = null;
 
     private boolean SlimeFun = false;
     private boolean lwc = false;
-    Metrics metrics = null;
 
-    protected int autosaveBukkitId = -1;
+    protected ScheduledTask autosaveBukkitId = null;
     protected boolean initsuccess = false;
     public Map<String, String> deleteConfirm;
     public Map<String, String> UnrentConfirm = new HashMap<String, String>();
@@ -367,7 +362,7 @@ public class Residence extends JavaPlugin {
         public void run() {
             try {
                 if (initsuccess) {
-                    Bukkit.getScheduler().runTaskAsynchronously(Residence.this, new Runnable() {
+                    ResScheduler.runTaskAsynchronously(Residence.this, new Runnable() {
                         @Override
                         public void run() {
                             try {
@@ -392,28 +387,22 @@ public class Residence extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        server.getScheduler().cancelTask(autosaveBukkitId);
-        server.getScheduler().cancelTask(healBukkitId);
-        server.getScheduler().cancelTask(feedBukkitId);
-        server.getScheduler().cancelTask(effectRemoveBukkitId);
+        ResScheduler.cancelTask(autosaveBukkitId);
+        ResScheduler.cancelTask(healBukkitId);
+        ResScheduler.cancelTask(feedBukkitId);
+        ResScheduler.cancelTask(effectRemoveBukkitId);
 
-        server.getScheduler().cancelTask(DespawnMobsBukkitId);
+        ResScheduler.cancelTask(DespawnMobsBukkitId);
 
         this.getPermissionManager().stopCacheClearScheduler();
 
         this.getSelectionManager().onDisable();
 
-        if (this.metrics != null)
-            try {
-                metrics.disable();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         if (getConfigManager().useLeases()) {
-            server.getScheduler().cancelTask(leaseBukkitId);
+            ResScheduler.cancelTask(leaseBukkitId);
         }
         if (getConfigManager().enabledRentSystem()) {
-            server.getScheduler().cancelTask(rentBukkitId);
+            ResScheduler.cancelTask(rentBukkitId);
         }
 
         if (getDynManager() != null && getDynManager().getMarkerSet() != null)
@@ -636,7 +625,7 @@ public class Residence extends JavaPlugin {
                 }
                 Bukkit.getConsoleSender().sendMessage(getPrefix() + " Player data loaded: " + OfflinePlayerList.size());
             } else {
-                Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
+                ResScheduler.runTaskAsynchronously(this, new Runnable() {
                     @Override
                     public void run() {
                         for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
@@ -804,17 +793,17 @@ public class Residence extends JavaPlugin {
                 autosaveInt = 1;
             }
             autosaveInt = autosaveInt * 60 * 20;
-            autosaveBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, autoSave, autosaveInt, autosaveInt);
+            autosaveBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, autoSave, autosaveInt, autosaveInt);
 
             if (getConfigManager().getHealInterval() > 0)
-                healBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, doHeals, 20, getConfigManager().getHealInterval() * 20);
+                healBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, doHeals, 20, getConfigManager().getHealInterval() * 20);
             if (getConfigManager().getFeedInterval() > 0)
-                feedBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, doFeed, 20, getConfigManager().getFeedInterval() * 20);
+                feedBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, doFeed, 20, getConfigManager().getFeedInterval() * 20);
             if (getConfigManager().getSafeZoneInterval() > 0)
-                effectRemoveBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, removeBadEffects, 20, getConfigManager().getSafeZoneInterval() * 20);
+                effectRemoveBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, removeBadEffects, 20, getConfigManager().getSafeZoneInterval() * 20);
 
             if (getConfigManager().AutoMobRemoval())
-                DespawnMobsBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, DespawnMobs, 20 * getConfigManager().AutoMobRemovalInterval(), 20
+                DespawnMobsBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, DespawnMobs, 20 * getConfigManager().AutoMobRemovalInterval(), 20
                     * getConfigManager().AutoMobRemovalInterval());
 
             if (getConfigManager().useLeases()) {
@@ -823,7 +812,7 @@ public class Residence extends JavaPlugin {
                     leaseInterval = 1;
                 }
                 leaseInterval = leaseInterval * 60 * 20;
-                leaseBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, leaseExpire, leaseInterval, leaseInterval);
+                leaseBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, leaseExpire, leaseInterval, leaseInterval);
             }
             if (getConfigManager().enabledRentSystem()) {
                 int rentint = getConfigManager().getRentCheckInterval();
@@ -831,19 +820,14 @@ public class Residence extends JavaPlugin {
                     rentint = 1;
                 }
                 rentint = rentint * 60 * 20;
-                rentBukkitId = server.getScheduler().scheduleSyncRepeatingTask(this, rentExpire, rentint, rentint);
+                rentBukkitId = ResScheduler.scheduleSyncRepeatingTask(this, rentExpire, rentint, rentint);
             }
             for (Player player : Bukkit.getServer().getOnlinePlayers()) {
                 if (getPermissionManager().isResidenceAdmin(player)) {
                     turnResAdminOn(player);
                 }
             }
-            try {
-                metrics = new Metrics(this);
-                metrics.start();
-            } catch (IOException e) {
-                // Failed to submit the stats :-(
-            }
+
             Bukkit.getConsoleSender().sendMessage(getPrefix() + " Enabled! Version " + this.getDescription().getVersion() + " by Zrips");
             initsuccess = true;
 

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -128,7 +129,7 @@ public class ResidenceBlockListener implements Listener {
 
                 e.setCancelled(true);
                 plugin.msg(player, lm.Flag_Deny, result);
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                ResScheduler.runTask(plugin, () -> {
                     Location loc = block.getLocation().clone();
                     loc.add(e.getHitBlockFace().getDirection());
                     e.getEntity().teleport(loc);

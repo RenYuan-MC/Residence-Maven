@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -1455,7 +1456,7 @@ public class ClaimedResidence {
     public void TpTimer(final Player player, final int t) {
         CMITitleMessage.send(player, Residence.getInstance().msg(lm.General_TeleportTitle),
             Residence.getInstance().msg(lm.General_TeleportTitleTime, t));
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
+        ResScheduler.scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
             @Override
             public void run() {
                 if (!Residence.getInstance().getTeleportDelayMap().contains(player.getName()))
@@ -1473,7 +1474,7 @@ public class ClaimedResidence {
         if (tpevent.isCancelled())
             return;
 
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
+        ResScheduler.scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
             @Override
             public void run() {
                 if (targloc == null || targetPlayer == null || !targetPlayer.isOnline())

@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.boss.BarColor;
@@ -32,9 +34,9 @@ public class ResidenceRaid {
     private HashMap<UUID, RaidAttacker> attackers = new HashMap<UUID, RaidAttacker>();
     private HashMap<UUID, RaidDefender> defenders = new HashMap<UUID, RaidDefender>();
 
-    private int schedRaidEndId = -1;
-    private int shedRaidStartId = -1;
-    private int schedBossBarId = -1;
+    private ScheduledTask schedRaidEndId = null;
+    private ScheduledTask shedRaidStartId = null;
+    private ScheduledTask schedBossBarId = null;
 
     public ResidenceRaid(ClaimedResidence res) {
 	this.res = res;
@@ -212,21 +214,21 @@ public class ResidenceRaid {
     public void endRaid() {
 	setEndsAt(System.currentTimeMillis());
 
-	if (this.schedRaidEndId > 0) {
+	if (this.schedRaidEndId != null) {
 	    ResidenceRaidEndEvent End = new ResidenceRaidEndEvent(res);
 	    Bukkit.getPluginManager().callEvent(End);
-	    Bukkit.getScheduler().cancelTask(this.schedRaidEndId);
-	    this.schedRaidEndId = -1;
+	    ResScheduler.cancelTask(this.schedRaidEndId);
+	    this.schedRaidEndId = null;
 	}
 
-	if (this.shedRaidStartId > 0) {
-	    Bukkit.getScheduler().cancelTask(this.shedRaidStartId);
-	    this.shedRaidStartId = -1;
+	if (this.shedRaidStartId != null) {
+	    ResScheduler.cancelTask(this.shedRaidStartId);
+	    this.shedRaidStartId = null;
 	}
 
-	if (this.schedBossBarId > 0) {
-	    Bukkit.getScheduler().cancelTask(this.schedBossBarId);
-	    this.schedBossBarId = -1;
+	if (this.schedBossBarId != null) {
+	    ResScheduler.cancelTask(this.schedBossBarId);
+	    this.schedBossBarId = null;
 	}
 
 	setStartsAt(0L);
@@ -345,7 +347,7 @@ public class ResidenceRaid {
 	    return false;
 
 	ResidenceRaidStartEvent start = new ResidenceRaidStartEvent(res, getAttackers());
-	this.shedRaidStartId = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
+	this.shedRaidStartId = ResScheduler.scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
 	    @Override
 	    public void run() {
 		Bukkit.getPluginManager().callEvent(start);
@@ -354,18 +356,18 @@ public class ResidenceRaid {
 	    }
 	}, ((getStartsAt() - System.currentTimeMillis()) / 50));
 
-	schedBossBarId = Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(Residence.getInstance(), new Runnable() {
+	schedBossBarId = ResScheduler.scheduleSyncRepeatingTask(Residence.getInstance(), new Runnable() {
 	    @Override
 	    public void run() {
 		if (!isUnderRaid() && !isInPreRaid()) {
-		    Bukkit.getServer().getScheduler().cancelTask(schedBossBarId);
+		    ResScheduler.cancelTask(schedBossBarId);
 		    return;
 		}
 		showBossBar();
 	    }
 	}, this.isUnderRaid() ? 20L : 0L, 20L);
 
-	this.schedRaidEndId = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
+	this.schedRaidEndId = ResScheduler.scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
 	    @Override
 	    public void run() {
 		endRaid();

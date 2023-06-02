@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -231,7 +232,7 @@ public class InformationPager {
 	    return;
 	}
 
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+	ResScheduler.scheduleSyncDelayedTask(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		printListWithDelay(sender, ownedResidences, start + 100, resadmin);
@@ -244,7 +245,7 @@ public class InformationPager {
     private void printListToFile(final TreeMap<String, ClaimedResidence> ownedResidences, final boolean resadmin) {
 
 	Bukkit.getConsoleSender().sendMessage("Saving");
-	Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+	ResScheduler.runTaskAsynchronously(plugin, new Runnable() {
 	    @Override
 	    public void run() {
 		int y = 0;

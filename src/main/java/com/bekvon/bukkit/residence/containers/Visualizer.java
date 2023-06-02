@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -16,9 +18,9 @@ public class Visualizer {
     private long start;
     private List<CuboidArea> areas = new ArrayList<CuboidArea>();
     private List<CuboidArea> errorAreas = new ArrayList<CuboidArea>();
-    private int id = -1;
-    private int errorId = -1;
-    private int baseShedId = -1;
+    private ScheduledTask id = null;
+    private ScheduledTask errorId = null;
+    private ScheduledTask baseShedId = null;
     private boolean once = false;
     private int starting = 0;
     private int currentSkip = 0;
@@ -35,14 +37,14 @@ public class Visualizer {
     }
 
     public void cancelAll() {
-	if (id != -1) {
-	    Bukkit.getScheduler().cancelTask(id);
+	if (id != null) {
+	    ResScheduler.cancelTask(id);
 	}
-	if (errorId != -1) {
-	    Bukkit.getScheduler().cancelTask(errorId);
+	if (errorId != null) {
+	    ResScheduler.cancelTask(errorId);
 	}
-	if (baseShedId != -1) {
-	    Bukkit.getScheduler().cancelTask(baseShedId);
+	if (baseShedId != null) {
+	    ResScheduler.cancelTask(baseShedId);
 	}
     }
 
@@ -118,19 +120,19 @@ public class Visualizer {
 	this.errorAreas.add(errorArea);
     }
 
-    public int getId() {
+    public ScheduledTask getId() {
 	return id;
     }
 
-    public void setId(int id) {
+    public void setId(ScheduledTask id) {
 	this.id = id;
     }
 
-    public int getErrorId() {
+    public ScheduledTask getErrorId() {
 	return errorId;
     }
 
-    public void setErrorId(int errorId) {
+    public void setErrorId(ScheduledTask errorId) {
 	this.errorId = errorId;
     }
 
@@ -190,11 +192,11 @@ public class Visualizer {
 	this.starting = starting;
     }
 
-    public int getBaseShedId() {
+    public ScheduledTask getBaseShedId() {
 	return baseShedId;
     }
 
-    public void setBaseShedId(int baseShedId) {
+    public void setBaseShedId(ScheduledTask baseShedId) {
 	this.baseShedId = baseShedId;
     }
 

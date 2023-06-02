@@ -3,6 +3,7 @@ package com.bekvon.bukkit.residence.commands;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -126,7 +127,7 @@ public class rt implements cmd {
 	    return true;
 	}
 
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), () -> {
+	ResScheduler.scheduleSyncDelayedTask(Residence.getInstance(), () -> {
 	    if (Residence.getInstance().getConfigManager().getTeleportDelay() > 0 && !resadmin && !ResPerm.randomtp_delaybypass.hasPermission(sender, false)) {
 		Residence.getInstance().msg(player, lm.RandomTeleport_TeleportStarted, lc.getX(), lc.getY(), lc.getZ(), Residence.getInstance().getConfigManager().getTeleportDelay());
 		Residence.getInstance().getTeleportDelayMap().add(player.getName());

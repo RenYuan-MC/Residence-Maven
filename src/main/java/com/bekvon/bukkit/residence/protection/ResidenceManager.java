@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -604,7 +605,7 @@ public class ResidenceManager implements ResidenceInterface {
             if (Version.isCurrentEqualOrHigher(Version.v1_13_R1) && plugin.getConfigManager().isUseClean() && plugin.getConfigManager().getCleanWorlds().contains(res.getWorld())) {
 
                 CuboidArea[] arr = res.getAreaArray();
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+                ResScheduler.runTaskAsynchronously(plugin, new Runnable() {
                     @Override
                     public void run() {
                         ChunkSnapshot chunkSnapshot = null;
@@ -652,7 +653,7 @@ public class ResidenceManager implements ResidenceInterface {
                                 }
                             }
                         }
-                        Bukkit.getScheduler().runTask(plugin, () -> {
+                        ResScheduler.runTask(plugin, () -> {
                             for (Location one : locations) {
                                 one.getBlock().setType(Material.AIR);
                             }
