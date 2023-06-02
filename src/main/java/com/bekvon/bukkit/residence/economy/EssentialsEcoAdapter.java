@@ -2,6 +2,7 @@ package com.bekvon.bukkit.residence.economy;
 
 import java.math.BigDecimal;
 
+import net.ess3.api.MaxMoneyException;
 import org.bukkit.entity.Player;
 
 import com.bekvon.bukkit.residence.Residence;
@@ -83,6 +84,8 @@ public class EssentialsEcoAdapter implements EconomyInterface {
                 return false;
             } catch (NoLoanPermittedException ex) {
                 return false;
+            } catch (MaxMoneyException e) {
+                return false;
             }
         }
         return false;
@@ -98,6 +101,8 @@ public class EssentialsEcoAdapter implements EconomyInterface {
             } catch (UserDoesNotExistException ex) {
                 return false;
             } catch (NoLoanPermittedException ex) {
+                return false;
+            } catch (MaxMoneyException e) {
                 return false;
             }
         }
