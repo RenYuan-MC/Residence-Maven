@@ -132,7 +132,7 @@ public class ResidenceBlockListener implements Listener {
                 ResScheduler.runTask(plugin, () -> {
                     Location loc = block.getLocation().clone();
                     loc.add(e.getHitBlockFace().getDirection());
-                    e.getEntity().teleport(loc);
+                    e.getEntity().teleportAsync(loc);
                     e.getEntity().setVelocity(e.getEntity().getVelocity().multiply(-1));
                 });
 

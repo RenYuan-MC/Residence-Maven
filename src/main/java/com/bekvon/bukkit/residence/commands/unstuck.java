@@ -36,7 +36,7 @@ public class unstuck implements cmd {
 	    plugin.msg(player, lm.Residence_NotIn);
 	} else {
 	    plugin.msg(player, lm.General_Moved);
-	    player.teleport(res.getOutsideFreeLoc(player.getLocation(), player));
+	    player.teleportAsync(res.getOutsideFreeLoc(player.getLocation(), player));
 	}
 	return true;
     }

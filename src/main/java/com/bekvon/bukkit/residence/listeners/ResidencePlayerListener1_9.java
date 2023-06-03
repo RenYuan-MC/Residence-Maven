@@ -86,7 +86,7 @@ public class ResidencePlayerListener1_9 implements Listener {
 	if (loc != null) {
 	    plugin.msg(player, lm.Flag_Deny, Flags.elytra);
 	    player.closeInventory();
-	    player.teleport(loc);
+	    player.teleportAsync(loc);
 	}
     }
 }

@@ -2,13 +2,13 @@ package com.bekvon.bukkit.residence.listeners;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import com.bekvon.bukkit.residence.utils.ResScheduler;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
@@ -93,10 +93,10 @@ import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Entities.CMIEntity;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
 import net.Zrips.CMILib.Util.CMIVersionChecker;
 import net.Zrips.CMILib.Version.Version;
+import org.jetbrains.annotations.NotNull;
 
 public class ResidencePlayerListener implements Listener {
 
@@ -906,7 +906,7 @@ public class ResidencePlayerListener implements Listener {
             }
             plugin.msg(player, lm.Residence_FlagDeny, Flags.nofly, location.getWorld().getName());
             player.closeInventory();
-            player.teleport(location);
+            player.teleportAsync(location);
             player.setFlying(false);
             player.setAllowFlight(false);
         }
@@ -1905,7 +1905,7 @@ public class ResidencePlayerListener implements Listener {
 //		&& !ResPerm.bypass_tp.hasPermission(player, 10000L) && !ResPerm.admin_move.hasPermission(player, 10000L)) {
 //		event.setCancelled(true);
 //		Location newLoc = res.getOutsideFreeLoc(loc, player);
-//		player.teleport(newLoc);
+//		player.teleportAsync(newLoc);
 //		plugin.msg(player, lm.Residence_MoveDeny, res.getName());
 //		return;
 //	    }
@@ -2023,7 +2023,7 @@ public class ResidencePlayerListener implements Listener {
                 }
                 if (loc != null) {
                     player.closeInventory();
-                    player.teleport(loc);
+                    player.teleportAsync(loc);
                 }
             }
             player.setFlying(false);
@@ -2193,9 +2193,8 @@ public class ResidencePlayerListener implements Listener {
 
         this.lastUpdate.put(player.getUniqueId(), System.currentTimeMillis());
 
-        boolean handled = handleNewLocation(player, locto, true);
-        if (!handled)
-            event.setCancelled(true);
+        handleNewLocation(player, locto, true);
+
 
         if (!plugin.getTeleportDelayMap().isEmpty() && plugin.getConfigManager().getTeleportDelay() > 0 && plugin.getTeleportDelayMap().contains(player
             .getName())) {
@@ -2245,10 +2244,7 @@ public class ResidencePlayerListener implements Listener {
 
             this.lastUpdate.put(player.getUniqueId(), System.currentTimeMillis());
 
-            boolean handled = handleNewLocation(player, locto, true);
-            if (!handled) {
-                event.getVehicle().teleport(event.getFrom());
-            }
+            handleNewLocation(player, locto, true);
 
             if (!plugin.getTeleportDelayMap().isEmpty() && plugin.getConfigManager().getTeleportDelay() > 0 && plugin.getTeleportDelayMap().contains(player
                 .getName())) {
@@ -2260,13 +2256,13 @@ public class ResidencePlayerListener implements Listener {
         }
     }
 
-    private boolean teleport(Player player, Location loc) {
+    private CompletableFuture<Boolean> teleport(Player player, Location loc) {
         if (player == null || !player.isOnline() || loc == null)
-            return false;
-        return player.teleport(loc);
+            return CompletableFuture.supplyAsync(() -> false);
+        return player.teleportAsync(loc);
     }
 
-    public boolean handleNewLocation(final Player player, Location loc, boolean move) {
+    public void handleNewLocation(final Player player, Location loc, boolean move) {
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(loc);
 
         ClaimedResidence orres = res;
@@ -2354,13 +2350,13 @@ public class ResidencePlayerListener implements Listener {
                 plugin.getServ().getPluginManager().callEvent(chgEvent);
                 currentRes.remove(uuid);
             }
-            return true;
+            return;
         }
 
         if (move) {
             if (res.getRaid().isUnderRaid()) {
                 if (res.getRaid().isAttacker(player.getUniqueId()) || res.getRaid().isDefender(player.getUniqueId())) {
-                    return true;
+                    return;
                 }
                 Location lastLoc = lastOutsideLoc.get(uuid);
 
@@ -2372,30 +2368,39 @@ public class ResidencePlayerListener implements Listener {
                 }
 
                 ClaimedResidence preRes = plugin.getResidenceManager().getByLoc(lastLoc);
-                boolean teleported = false;
+                CompletableFuture<Boolean> teleported = CompletableFuture.supplyAsync(() -> false);
                 if (preRes != null && Flags.tp.isGlobalyEnabled() && preRes.getPermissions().playerHas(player, Flags.tp, FlagCombo.OnlyFalse) && !ResPerm.admin_tp.hasPermission(player, 10000L)) {
                     Location newLoc = res.getOutsideFreeLoc(loc, player);
                     player.closeInventory();
                     teleported = teleport(player, newLoc);
                 }
+                ClaimedResidence finalRes = res;
+                ClaimedResidence finalRes1 = res;
+                teleported.thenAccept((t) -> {
+                    if (!t) {
+                        CompletableFuture<Boolean> teleported1 = CompletableFuture.supplyAsync(() -> false);
+                        if (lastLoc != null) {
+                            StuckInfo info = updateStuckTeleport(player, loc);
+                            player.closeInventory();
 
-                if (!teleported) {
-                    if (lastLoc != null) {
-                        StuckInfo info = updateStuckTeleport(player, loc);
-                        player.closeInventory();
-                        if (info != null && info.getTimesTeleported() > 5) {
-                            Location newLoc = res.getOutsideFreeLoc(loc, player);
-                            teleported = teleport(player, newLoc);
-                        } else {
-                            teleported = teleport(player, lastLoc);
+                            if (info != null && info.getTimesTeleported() > 5) {
+                                Location newLoc = finalRes1.getOutsideFreeLoc(loc, player);
+                                teleported1 = teleport(player, newLoc);
+                            } else {
+                                teleported1 = teleport(player, lastLoc);
+                            }
                         }
+                        teleported1.thenAccept((t1) -> {
+                            if (!t1) {
+                                Location newLoc = finalRes.getOutsideFreeLoc(loc, player);
+                                player.closeInventory();
+                                teleport(player, newLoc);
+                            }
+                        });
+
                     }
-                    if (!teleported) {
-                        Location newLoc = res.getOutsideFreeLoc(loc, player);
-                        player.closeInventory();
-                        teleported = teleport(player, newLoc);
-                    }
-                }
+                });
+
 
                 switch (plugin.getConfigManager().getEnterLeaveMessageType()) {
                 case ActionBar:
@@ -2410,7 +2415,7 @@ public class ResidencePlayerListener implements Listener {
                 default:
                     break;
                 }
-                return teleported;
+                return;
             }
 
             if (Flags.move.isGlobalyEnabled() && res.getPermissions().playerHas(player, Flags.move, FlagCombo.OnlyFalse) && !plugin.isResAdminOn(player) && !res.isOwner(player) && !ResPerm.admin_move
@@ -2426,31 +2431,37 @@ public class ResidencePlayerListener implements Listener {
                 }
 
                 ClaimedResidence preRes = plugin.getResidenceManager().getByLoc(lastLoc);
-                boolean teleported = false;
+                CompletableFuture<Boolean> teleported = CompletableFuture.supplyAsync(() -> false);
                 if (preRes != null && preRes.getPermissions().playerHas(player, Flags.tp, FlagCombo.OnlyFalse) && !ResPerm.admin_tp.hasPermission(player, 10000L)) {
                     Location newLoc = res.getOutsideFreeLoc(loc, player);
                     player.closeInventory();
                     teleported = teleport(player, newLoc);
                 }
-
-                if (!teleported) {
-                    if (lastLoc != null) {
-                        StuckInfo info = updateStuckTeleport(player, loc);
-                        player.closeInventory();
-                        if (info != null && info.getTimesTeleported() > 5) {
-                            Location newLoc = res.getOutsideFreeLoc(loc, player);
-                            teleported = teleport(player, newLoc);
-                        } else {
-                            teleported = teleport(player, lastLoc);
+                ClaimedResidence finalRes2 = res;
+                teleported.thenAccept((t) ->{
+                    if (!t) {
+                        CompletableFuture<Boolean> teleported1 = CompletableFuture.supplyAsync(() -> false);
+                        if (lastLoc != null) {
+                            StuckInfo info = updateStuckTeleport(player, loc);
+                            player.closeInventory();
+                            if (info != null && info.getTimesTeleported() > 5) {
+                                Location newLoc = finalRes2.getOutsideFreeLoc(loc, player);
+                                teleported1 = teleport(player, newLoc);
+                            } else {
+                                teleported1= teleport(player, lastLoc);
+                            }
                         }
-                    }
+                        teleported1.thenAccept((t1) ->{
+                            if (!t1) {
+                                Location newLoc = finalRes2.getOutsideFreeLoc(loc, player);
+                                player.closeInventory();
+                                teleport(player, newLoc);
+                            }
+                        });
 
-                    if (!teleported) {
-                        Location newLoc = res.getOutsideFreeLoc(loc, player);
-                        player.closeInventory();
-                        teleported = teleport(player, newLoc);
                     }
-                }
+                });
+
 
                 switch (plugin.getConfigManager().getEnterLeaveMessageType()) {
                 case ActionBar:
@@ -2466,7 +2477,7 @@ public class ResidencePlayerListener implements Listener {
                     break;
                 }
 
-                return teleported;
+                return;
             }
 
             // Preventing fly in residence only when player has move permission
@@ -2479,7 +2490,7 @@ public class ResidencePlayerListener implements Listener {
                 location.setYaw(lc.getYaw());
                 int from = location.getBlockY();
                 int maxH = location.getWorld().getMaxHeight() - 1;
-                boolean teleported = false;
+
 
                 for (int i = 0; i < maxH; i++) {
                     location.setY(from - i);
@@ -2492,19 +2503,17 @@ public class ResidencePlayerListener implements Listener {
                         Location lastLoc = lastOutsideLoc.get(uuid);
                         player.closeInventory();
                         if (lastLoc != null)
-                            teleported = teleport(player, lastLoc);
+                            teleport(player, lastLoc);
                         else
-                            teleported = teleport(player, res.getOutsideFreeLoc(loc, player));
+                            teleport(player, res.getOutsideFreeLoc(loc, player));
 
                         plugin.msg(player, lm.Residence_FlagDeny, Flags.nofly, orres.getName());
-                        return teleported;
+                        return;
                     }
                 }
                 plugin.msg(player, lm.Residence_FlagDeny, Flags.nofly, orres.getName());
                 player.closeInventory();
-                teleported = teleport(player, location);
-                if (!teleported)
-                    return false;
+                teleport(player, location);
                 player.setFlying(false);
                 player.setAllowFlight(false);
             }
@@ -2522,7 +2531,7 @@ public class ResidencePlayerListener implements Listener {
                 Location lastLoc = lastOutsideLoc.get(uuid);
                 player.closeInventory();
                 if (!move)
-                    return false;
+                    return;
                 
                 if (lastLoc != null && CMIMaterial.isAir(lastLoc.getBlock().getType())) {
                     Long last = lastUpdate.get(player.getUniqueId());
@@ -2536,18 +2545,18 @@ public class ResidencePlayerListener implements Listener {
 
                         if (outsideRes != null && !Flags.move.isGlobalyEnabled() && outsideRes.getPermissions().playerHas(player, Flags.move, FlagCombo.OnlyFalse) && !plugin.isResAdminOn(player)
                             && !outsideRes.isOwner(player) && !ResPerm.admin_move.hasPermission(player, 10000L)) {
-                            return false;
+                            return;
                         }
 
                         if (!plugin.getPermsByLoc(lastLoc).playerHas(player, Flags.move, FlagCombo.OnlyFalse))
-                            return false;
+                            return;
 
                         teleport(player, lastLoc);
                     }
                 } else {
                     teleport(player, res.getOutsideFreeLoc(loc, player));
                 }
-                return false;
+                return;
             } else {
                 currentRes.put(uuid, res);
             }
@@ -2557,7 +2566,7 @@ public class ResidencePlayerListener implements Listener {
             plugin.getServ().getPluginManager().callEvent(chgEvent);
 
         }
-        return true;
+        return;
     }
 
     HashMap<UUID, Long> informar = new HashMap<UUID, Long>();

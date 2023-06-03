@@ -240,7 +240,7 @@ public class ResidenceRaid {
 	    Residence.getInstance().msg(player, lm.Raid_Ended, res.getName());
 	    Location outside = res.getOutsideFreeLoc(player.getLocation(), player);
 	    if (outside != null)
-		player.teleport(outside);
+		player.teleportAsync(outside);
 	}
 
 	for (Entry<UUID, RaidAttacker> one : getAttackers().entrySet()) {

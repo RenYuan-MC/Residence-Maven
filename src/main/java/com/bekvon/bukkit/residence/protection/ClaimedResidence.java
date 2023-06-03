@@ -15,6 +15,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import com.bekvon.bukkit.residence.utils.ResScheduler;
 import org.bukkit.Bukkit;
@@ -66,6 +68,7 @@ import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
+import org.jetbrains.annotations.NotNull;
 
 public class ClaimedResidence {
 
@@ -1485,7 +1488,7 @@ public class ClaimedResidence {
                 else if (Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()))
                     Residence.getInstance().getTeleportDelayMap().remove(targetPlayer.getName());
                 targetPlayer.closeInventory();
-                targetPlayer.teleport(targloc);
+                targetPlayer.teleportAsync(targloc);
                 if (near)
                     Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
                 else
@@ -1507,14 +1510,18 @@ public class ClaimedResidence {
             } catch (Throwable e) {
             }
 
-            boolean teleported = targetPlayer.teleport(targloc);
+            CompletableFuture<Boolean> teleportedFuture = targetPlayer.teleportAsync(targloc);
 
-            if (teleported) {
-                if (near)
-                    Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
-                else
-                    Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
-            }
+            teleportedFuture.whenComplete((teleported, e) -> {
+                if (teleported && e == null) {
+                    if (near)
+                        Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
+                    else
+                        Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
+                }
+            });
+
+
         }
     }
 
@@ -2188,15 +2195,16 @@ public class ClaimedResidence {
         this.leaseExpireTime = leaseExpireTime;
     }
 
-    public boolean kickFromResidence(Player player) {
+    public void kickFromResidence(Player player) {
         if (!this.containsLoc(player.getLocation()))
-            return false;
+            return;
         Location loc = Residence.getInstance().getConfigManager().getKickLocation();
         player.closeInventory();
         if (loc != null) {
-            return player.teleport(loc);
+            player.teleportAsync(loc);
+        } else {
+            player.teleportAsync(getOutsideFreeLoc(player.getLocation(), player));
         }
-        return player.teleport(getOutsideFreeLoc(player.getLocation(), player));
     }
 //    public Town getTown() {
 //	return town;
