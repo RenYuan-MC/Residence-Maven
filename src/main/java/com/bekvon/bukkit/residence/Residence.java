@@ -420,10 +420,28 @@ public class Residence extends JavaPlugin {
         }
     }
 
+    private boolean isFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServerInitEvent");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     @Override
     public void onEnable() {
         try {
             instance = this;
+
+            if (!isFolia()){
+                getLogger().severe("The current Residence fork does not support running under non Folia");
+                Bukkit.getPluginManager().disablePlugin(this);
+            }
+
+            getLogger().warning("You are using an experimental version of Residence Folia");
+            getLogger().warning("If you encounter any problems, please report to https://github.com/Folium-MC/Residence-Maven");
 
             initsuccess = false;
             deleteConfirm = new HashMap<String, String>();

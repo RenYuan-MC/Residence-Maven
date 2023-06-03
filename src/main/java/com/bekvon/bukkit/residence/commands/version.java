@@ -16,7 +16,7 @@ public class version implements cmd {
     @CommandAnnotation(simple = false, priority = 5900)
     public Boolean perform(Residence plugin, CommandSender sender, String[] args, boolean resadmin) {
 	sender.sendMessage(ChatColor.GRAY + "------------------------------------");
-	sender.sendMessage(ChatColor.RED + "This server running " + ChatColor.GOLD + "Residence" + ChatColor.RED + " version: " + ChatColor.BLUE + plugin.getResidenceVersion());
+	sender.sendMessage(ChatColor.RED + "This server running " + ChatColor.GOLD + "Residence-Folia" + ChatColor.RED + " version: " + ChatColor.BLUE + plugin.getResidenceVersion());
 	sender.sendMessage(ChatColor.GREEN + "Created by: " + ChatColor.YELLOW + "bekvon");
 	sender.sendMessage(ChatColor.GREEN + "Updated to 1.8 by: " + ChatColor.YELLOW + "DartCZ");
 	sender.sendMessage(ChatColor.GREEN + "Currently maintained by: " + ChatColor.YELLOW + "Zrips");
@@ -32,6 +32,7 @@ public class version implements cmd {
 	sender.sendMessage(ChatColor.GREEN + "https://github.com/bekvon/Residence/wiki");
 	sender.sendMessage(ChatColor.AQUA + "Visit the Spigot Resource page at:");
 	sender.sendMessage(ChatColor.BLUE + "https://www.spigotmc.org/resources/residence.11480/");
+	sender.sendMessage(ChatColor.GREEN + "Folia Support By: " + ChatColor.YELLOW + "RENaa_FD");
 	sender.sendMessage(ChatColor.GRAY + "------------------------------------");
 	return true;
     }
