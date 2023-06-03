@@ -861,7 +861,6 @@ public class Residence extends JavaPlugin {
         getShopSignUtilManager().LoadSigns();
         getShopSignUtilManager().BoardUpdate();
 
-        CMIVersionChecker.VersionCheck(null, 11480, this.getDescription());
         fullyLoaded = true;
     }
 
