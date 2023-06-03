@@ -846,7 +846,7 @@ public class Residence extends JavaPlugin {
                 }
             }
 
-            Bukkit.getConsoleSender().sendMessage(getPrefix() + " Enabled! Version " + this.getDescription().getVersion() + " by Zrips");
+            Bukkit.getConsoleSender().sendMessage(getPrefix() + " Enabled! Version " + this.getDescription().getVersion() + " by Zrips & Folium-MC");
             initsuccess = true;
 
         } catch (Exception ex) {
