@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.bekvon.bukkit.residence.utils.ResScheduler;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import net.Zrips.CMILib.Version.PaperMethods.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -22,6 +23,8 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.block.data.type.Sapling;
+import org.bukkit.block.data.type.WallSign;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
@@ -1032,30 +1035,47 @@ public class ResidencePlayerListener implements Listener {
     }
 
     public static boolean isEmptyBlock(Block block) {
-        CMIMaterial cb = CMIMaterial.get(block);
+        try {
+            if (block == null) return true;
 
-        switch (cb) {
-        case COBWEB:
-        case STRING:
-        case WALL_SIGN:
-        case VINE:
-        case TRIPWIRE_HOOK:
-        case TRIPWIRE:
-        case PAINTING:
-        case ITEM_FRAME:
-        case GLOW_ITEM_FRAME:
-        case NONE:
+            Material cbBukkit = block.getType();
+
+            if (block.getBlockData() instanceof WallSign)
+                return true;
+
+            if (block.getBlockData() instanceof Sapling)
+                return true;
+
+            switch (cbBukkit){
+                case COBWEB:
+                case STRING:
+                case VINE:
+                case TRIPWIRE_HOOK:
+                case TRIPWIRE:
+                case PAINTING:
+                case ITEM_FRAME:
+                case GLOW_ITEM_FRAME:
+                case ACACIA_BUTTON:
+                case BIRCH_BUTTON:
+                case DARK_OAK_BUTTON:
+                case JUNGLE_BUTTON:
+                case OAK_BUTTON:
+                case SPRUCE_BUTTON:
+                case STONE_BUTTON:
+                case POLISHED_BLACKSTONE_BUTTON:
+                case WARPED_BUTTON:
+                case MANGROVE_BUTTON:
+                case AIR:
+                case CAVE_AIR:
+                case VOID_AIR:
+                    return true;
+                default:
+                    break;
+            }
+        } catch (Exception ignored){
             return true;
-        default:
-            break;
         }
 
-        if (cb.isSapling())
-            return true;
-        if (cb.isAir())
-            return true;
-        if (cb.isButton())
-            return true;
 
         return false;
     }

@@ -1,55 +1,15 @@
 package com.bekvon.bukkit.residence.protection;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-
-import com.bekvon.bukkit.residence.utils.ResScheduler;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.World.Environment;
-import org.bukkit.block.Block;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
-
 import com.bekvon.bukkit.residence.ConfigManager;
 import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.chat.ChatChannel;
 import com.bekvon.bukkit.residence.commands.padd;
-import com.bekvon.bukkit.residence.containers.Flags;
-import com.bekvon.bukkit.residence.containers.MinimizeMessages;
-import com.bekvon.bukkit.residence.containers.RandomLoc;
-import com.bekvon.bukkit.residence.containers.ResidencePlayer;
-import com.bekvon.bukkit.residence.containers.Visualizer;
-import com.bekvon.bukkit.residence.containers.lm;
+import com.bekvon.bukkit.residence.containers.*;
 import com.bekvon.bukkit.residence.economy.ResidenceBank;
 import com.bekvon.bukkit.residence.economy.rent.RentableLand;
 import com.bekvon.bukkit.residence.economy.rent.RentedLand;
-import com.bekvon.bukkit.residence.event.ResidenceAreaAddEvent;
-import com.bekvon.bukkit.residence.event.ResidenceAreaDeleteEvent;
+import com.bekvon.bukkit.residence.event.*;
 import com.bekvon.bukkit.residence.event.ResidenceDeleteEvent.DeleteCause;
-import com.bekvon.bukkit.residence.event.ResidenceSizeChangeEvent;
-import com.bekvon.bukkit.residence.event.ResidenceSubzoneCreationEvent;
-import com.bekvon.bukkit.residence.event.ResidenceTPEvent;
 import com.bekvon.bukkit.residence.itemlist.ItemList.ListType;
 import com.bekvon.bukkit.residence.itemlist.ResidenceItemList;
 import com.bekvon.bukkit.residence.listeners.ResidencePlayerListener;
@@ -59,8 +19,8 @@ import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagCombo;
 import com.bekvon.bukkit.residence.raid.ResidenceRaid;
 import com.bekvon.bukkit.residence.shopStuff.ShopVote;
 import com.bekvon.bukkit.residence.signsStuff.Signs;
+import com.bekvon.bukkit.residence.utils.ResScheduler;
 import com.bekvon.bukkit.residence.utils.Utils;
-
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMIWorld;
 import net.Zrips.CMILib.Container.PageInfo;
@@ -68,7 +28,19 @@ import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
-import org.jetbrains.annotations.NotNull;
+import net.Zrips.CMILib.Version.PaperMethods.PaperLib;
+import org.bukkit.*;
+import org.bukkit.World.Environment;
+import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 
 public class ClaimedResidence {
 
@@ -1054,7 +1026,7 @@ public class ClaimedResidence {
         int maxIt = newLoc.getBlockY() + 1;
 
         try {
-            insideLoc.getChunk().setForceLoaded(true);
+            PaperLib.getChunkAtAsync(insideLoc,true).get().setForceLoaded(true);
         } catch (Throwable e) {
         }
 
@@ -1148,15 +1120,17 @@ public class ClaimedResidence {
                     break;
                 }
             }
+            try {
+                if (!ResidencePlayerListener.isEmptyBlock(loc.getBlock()))
+                    continue;
 
-            if (!ResidencePlayerListener.isEmptyBlock(loc.getBlock()))
-                continue;
+                if (loc.clone().add(0, -1, 0).getBlock().getType() == Material.LAVA)
+                    continue;
 
-            if (loc.clone().add(0, -1, 0).getBlock().getState().getType() == Material.LAVA)
-                continue;
+                if (loc.clone().add(0, -1, 0).getBlock().getType() == Material.WATER)
+                    continue;
+            } catch (Exception ignored){}
 
-            if (loc.clone().add(0, -1, 0).getBlock().getState().getType() == Material.WATER)
-                continue;
 
             ClaimedResidence res = Residence.getInstance().getResidenceManager().getByLoc(loc);
             if (res != null && player != null && (!res.getPermissions().playerHas(player, Flags.tp, FlagCombo.TrueOrNone) || !res.getPermissions().playerHas(player, Flags.move, FlagCombo.TrueOrNone))
