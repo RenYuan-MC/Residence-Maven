@@ -33,6 +33,8 @@ public class ResScheduler {
     }
 
     public static void cancelTask(ScheduledTask task){
-        task.cancel();
+        if (task != null) {
+            task.cancel();
+        }
     }
 }
