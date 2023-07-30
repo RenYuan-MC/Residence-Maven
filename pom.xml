@@ -82,7 +82,7 @@
         <dependency>
             <groupId>net.essentialsx</groupId>
             <artifactId>EssentialsX</artifactId>
-            <version>2.20.0-SNAPSHOT</version>
+            <version>2.18.2</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/EssentialsX.jar</systemPath>
         </dependency>
@@ -146,7 +146,7 @@
         <dependency>
             <groupId>com.Zirps</groupId>
             <artifactId>CMILib</artifactId>
-            <version>1.2.3.7</version>
+            <version>1.4.0.3</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/CMILib1.4.0.3.jar</systemPath>
         </dependency>
