@@ -70,11 +70,16 @@ public class kick implements cmd {
 	    }
 	    Location loc = plugin.getConfigManager().getKickLocation();
 	    targetplayer.closeInventory();
-	    if (loc != null)
-		targetplayer.teleport(loc);
-	    else
-		targetplayer.teleport(res.getOutsideFreeLoc(player.getLocation(), player));
-	    plugin.msg(targetplayer, lm.Residence_Kicked);
+		targetplayer.getScheduler().execute(Residence.getInstance(), new Runnable() {
+			@Override
+			public void run() {
+				if (loc != null)
+					targetplayer.teleport(loc);
+				else
+					targetplayer.teleport(res.getOutsideFreeLoc(player.getLocation(), player));
+				plugin.msg(targetplayer, lm.Residence_Kicked);
+			}
+				}, null, 1);
 	}
 	return true;
     }

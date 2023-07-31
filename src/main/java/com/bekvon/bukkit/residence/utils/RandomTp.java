@@ -299,7 +299,7 @@ public class RandomTp {
     }
 
     public void performDelaydTp(final Location loc, final Player targetPlayer) {
-	Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+		targetPlayer.getScheduler().execute(plugin,new Runnable() {
 	    @Override
 	    public void run() {
 		if (!plugin.getTeleportDelayMap().contains(targetPlayer.getName()) && plugin.getConfigManager().getTeleportDelay() > 0)
@@ -311,12 +311,17 @@ public class RandomTp {
 		plugin.msg(targetPlayer, lm.RandomTeleport_TeleportSuccess, loc.getX(), loc.getY(), loc.getZ());
 		return;
 	    }
-	}, plugin.getConfigManager().getTeleportDelay() * 20L);
+	},null, plugin.getConfigManager().getTeleportDelay() * 20L);
     }
 
     public void performInstantTp(Location loc, Player targetPlayer) {
 	targetPlayer.closeInventory();
-	targetPlayer.teleport(loc);
+	targetPlayer.getScheduler().execute(plugin,new Runnable() {
+		@Override
+		public void run() {
+			targetPlayer.teleportAsync(loc);
+		}
+		},null,1);
 	plugin.msg(targetPlayer, lm.RandomTeleport_TeleportSuccess, loc.getX(), loc.getY(), loc.getZ());
     }
 }

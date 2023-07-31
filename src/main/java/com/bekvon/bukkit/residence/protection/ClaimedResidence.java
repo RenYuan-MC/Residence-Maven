@@ -1473,25 +1473,24 @@ public class ClaimedResidence {
         if (tpevent.isCancelled())
             return;
 
-        Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Residence.getInstance(), new Runnable() {
+        targetPlayer.getScheduler().execute(Residence.getInstance(),new Runnable() {
             @Override
             public void run() {
                 if (targloc == null || targetPlayer == null || !targetPlayer.isOnline())
                     return;
                 if (!Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName())
-                    && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
+                        && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
                     return;
                 else if (Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()))
                     Residence.getInstance().getTeleportDelayMap().remove(targetPlayer.getName());
                 targetPlayer.closeInventory();
-                targetPlayer.teleport(targloc);
+                targetPlayer.teleportAsync(targloc);
                 if (near)
                     Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
                 else
                     Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
-                return;
             }
-        }, Residence.getInstance().getConfigManager().getTeleportDelay() * 20L);
+        }, null ,Residence.getInstance().getConfigManager().getTeleportDelay() * 20L);
     }
 
     private void performInstantTp(final Location targloc, final Player targetPlayer, Player reqPlayer,
@@ -1500,20 +1499,19 @@ public class ClaimedResidence {
         Residence.getInstance().getServ().getPluginManager().callEvent(tpevent);
         if (!tpevent.isCancelled()) {
             targetPlayer.closeInventory();
-
-            try {
-                targloc.getChunk().load();
-            } catch (Throwable e) {
-            }
-
-            boolean teleported = targetPlayer.teleport(targloc);
-
-            if (teleported) {
-                if (near)
-                    Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
-                else
-                    Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
-            }
+            targetPlayer.getScheduler().execute(Residence.getInstance(),new Runnable() {
+                @Override
+                public void run() {
+                    targetPlayer.teleportAsync(targloc).thenAccept(result -> {
+                        if (result) {
+                            if (near)
+                                Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
+                            else
+                                Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
+                        }
+                    });
+                }
+            },null,1);
         }
     }
 
