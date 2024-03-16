@@ -6,7 +6,7 @@
 
     <groupId>com.bekvon</groupId>
     <artifactId>Residence</artifactId>
-    <version>5.1.4.0</version>
+    <version>5.1.4.3</version>
     <packaging>jar</packaging>
 
     <name>Residence</name>
@@ -207,8 +207,13 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/bPermissions-Bukkit-2.12.4-all.jar</systemPath>
         </dependency>
-
+        <dependency>
+            <groupId>nl.pim16aap2</groupId>
+            <artifactId>BigDoors</artifactId>
+            <version>0.1.8.43</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/BigDoors.jar</systemPath>
+        </dependency>
     </dependencies>
-
 
 </project>
