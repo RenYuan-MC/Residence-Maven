@@ -46,7 +46,6 @@ import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
-import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingBreakEvent.RemoveCause;
@@ -476,7 +475,7 @@ public class ResidenceEntityListener implements Listener {
 
         Entity entity = event.getRightClicked();
 
-        if (entity.getType() != EntityType.LEASH_HITCH)
+        if (CMIEntityType.get(entity.getType()) != CMIEntityType.LEASH_KNOT)
             return;
 
         if (plugin.isResAdminOn(player))
@@ -538,11 +537,6 @@ public class ResidenceEntityListener implements Listener {
             event.setCancelled(true);
             return;
         }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onItemSpawnEvent(SpawnerSpawnEvent event) {
-
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -670,7 +664,7 @@ public class ResidenceEntityListener implements Listener {
         if (plugin.isDisabledWorldListener(event.getEntity().getWorld()))
             return;
 
-        if (event.getEntityType().equals(EntityType.THROWN_EXP_BOTTLE))
+        if (CMIEntityType.get(event.getEntity()) == CMIEntityType.EXPERIENCE_BOTTLE)
             return;
 
         if (event.getEntity().getShooter() instanceof Player) {
@@ -737,8 +731,8 @@ public class ResidenceEntityListener implements Listener {
             return;
         if (plugin.isDisabledWorldListener(ent.getWorld()))
             return;
-        
-        CMIEntityType type = CMIEntityType.getByType(event.getEntity().getType());
+
+        CMIEntityType type = CMIEntityType.get(event.getEntity().getType());
 
         if (!type.equals(CMIEntityType.ITEM_FRAME) && !type.equals(CMIEntityType.GLOW_ITEM_FRAME))
             return;
@@ -798,7 +792,7 @@ public class ResidenceEntityListener implements Listener {
         EntityType entity = event.getEntityType();
         FlagPermissions perms = plugin.getPermsByLoc(ent.getLocation());
 
-        switch (entity) {
+        switch (CMIEntityType.get(entity)) {
         case CREEPER:
 
             // Disabling listener if flag disabled globally
@@ -822,8 +816,8 @@ public class ResidenceEntityListener implements Listener {
                 }
             }
             break;
-        case PRIMED_TNT:
-        case MINECART_TNT:
+        case TNT:
+        case TNT_MINECART:
 
             // Disabling listener if flag disabled globally
             if (!Flags.tnt.isGlobalyEnabled())
@@ -895,7 +889,7 @@ public class ResidenceEntityListener implements Listener {
         FlagPermissions world = plugin.getWorldFlags().getPerms(loc.getWorld().getName());
 
         if (ent != null) {
-            switch (event.getEntityType()) {
+            switch (CMIEntityType.get(event.getEntityType())) {
             case CREEPER:
                 // Disabling listener if flag disabled globally
                 if (!Flags.creeper.isGlobalyEnabled())
@@ -912,8 +906,8 @@ public class ResidenceEntityListener implements Listener {
                     } else
                         cancel = true;
                 break;
-            case PRIMED_TNT:
-            case MINECART_TNT:
+            case TNT:
+            case TNT_MINECART:
                 // Disabling listener if flag disabled globally
                 if (!Flags.tnt.isGlobalyEnabled())
                     break;
@@ -974,7 +968,7 @@ public class ResidenceEntityListener implements Listener {
             FlagPermissions blockperms = plugin.getPermsByLoc(block.getLocation());
 
             if (ent != null) {
-                switch (event.getEntityType()) {
+                switch (CMIEntityType.get(event.getEntityType())) {
                 case CREEPER:
                     // Disabling listener if flag disabled globally
                     if (!Flags.creeper.isGlobalyEnabled())
@@ -991,8 +985,8 @@ public class ResidenceEntityListener implements Listener {
                         } else
                             preserve.add(block);
                     continue;
-                case PRIMED_TNT:
-                case MINECART_TNT:
+                case TNT:
+                case TNT_MINECART:
                     // Disabling listener if flag disabled globally
                     if (!Flags.tnt.isGlobalyEnabled())
                         continue;
@@ -1359,12 +1353,15 @@ public class ResidenceEntityListener implements Listener {
         if (event.isCancelled())
             return;
 
-        if (event.getEntityType() != EntityType.ENDER_CRYSTAL && !CMIEntity.isItemFrame(event.getEntity()) && !Utils.isArmorStandEntity(event.getEntityType()))
+        if (CMIEntityType.get(event.getEntityType()) != CMIEntityType.ENDER_CRYSTAL && !CMIEntity.isItemFrame(event.getEntity()) && !Utils.isArmorStandEntity(event.getEntityType()))
             return;
 
         Entity dmgr = event.getDamager();
 
         Player player = null;
+
+        CMIEntityType type = CMIEntityType.get(event.getEntityType());
+
         if (dmgr instanceof Player) {
             player = (Player) event.getDamager();
         } else if (dmgr instanceof Projectile && ((Projectile) dmgr).getShooter() instanceof Player) {
@@ -1375,7 +1372,7 @@ public class ResidenceEntityListener implements Listener {
             if (perm.has(Flags.destroy, FlagCombo.OnlyFalse))
                 event.setCancelled(true);
             return;
-        } else if (dmgr.getType() == EntityType.PRIMED_TNT || dmgr.getType() == EntityType.MINECART_TNT) {
+        } else if (type == CMIEntityType.TNT || type == CMIEntityType.TNT_MINECART) {
 
             // Disabling listener if flag disabled globally
             if (Flags.explode.isGlobalyEnabled()) {
@@ -1385,7 +1382,7 @@ public class ResidenceEntityListener implements Listener {
                     return;
                 }
             }
-        } else if (dmgr.getType() == EntityType.WITHER_SKULL || dmgr.getType() == EntityType.WITHER) {
+        } else if (type == CMIEntityType.WITHER_SKULL || type == CMIEntityType.WITHER) {
 
             // Disabling listener if flag disabled globally
             if (Flags.witherdamage.isGlobalyEnabled()) {
@@ -1455,7 +1452,7 @@ public class ResidenceEntityListener implements Listener {
         if (!(event.getEntity() instanceof Player))
             return;
 
-        if (event.getProjectile().getType() == EntityType.FIREWORK)
+        if (CMIEntityType.get(event.getProjectile()) == CMIEntityType.FIREWORK_ROCKET)
             event.getProjectile().setMetadata(CrossbowShooter, new FixedMetadataValue(plugin, event.getEntity().getUniqueId()));
     }
 

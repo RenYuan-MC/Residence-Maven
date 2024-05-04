@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -24,6 +23,7 @@ import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagCombo;
 import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagState;
 import com.bekvon.bukkit.residence.protection.ResidencePermissions;
 
+import net.Zrips.CMILib.Enchants.CMIEnchantEnum;
 import net.Zrips.CMILib.GUI.CMIGuiButton;
 import net.Zrips.CMILib.GUI.GUIManager.GUIClickType;
 
@@ -323,11 +323,11 @@ public class setFlagInfo {
 	if (state == FlagState.TRUE) {
 	    ItemMeta im = miscInfo.getItemMeta();
 	    if (im != null) {
-		im.addEnchant(Enchantment.LUCK, 1, true);
+		im.addEnchant(CMIEnchantEnum.LUCK_OF_THE_SEA.getEnchantment(), 1, true);
 		miscInfo.setItemMeta(im);
 	    }
 	} else
-	    miscInfo.removeEnchantment(Enchantment.LUCK);
+	    miscInfo.removeEnchantment(CMIEnchantEnum.LUCK_OF_THE_SEA.getEnchantment());
 
 	Flags flag = Flags.getFlag(flagName);
 	if (flag != null)

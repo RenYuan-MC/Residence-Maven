@@ -316,6 +316,8 @@ public class ResidenceCommandListener implements CommandExecutor {
     }
 
     private boolean commandHelp(String[] args, boolean resadmin, CommandSender sender, Command command) {
+
+
         if (plugin.getHelpPages() == null)
             return false;
 
@@ -333,9 +335,12 @@ public class ResidenceCommandListener implements CommandExecutor {
         if (command.getName().equalsIgnoreCase("res"))
             resadmin = false;
 
+        CMIDebug.d("on commands ", 1, helppath);
         if (plugin.getHelpPages().containesEntry(helppath)) {
+        CMIDebug.d("on commands ", 0);
             plugin.getHelpPages().printHelp(sender, page, helppath, resadmin);
         }
+        CMIDebug.d("on commands ", 2);
         return true;
     }
 

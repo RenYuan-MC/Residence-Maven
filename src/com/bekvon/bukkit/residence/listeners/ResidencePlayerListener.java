@@ -90,9 +90,9 @@ import net.Zrips.CMILib.ActionBar.CMIActionBar;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMIWorld;
 import net.Zrips.CMILib.Entities.CMIEntity;
+import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
 import net.Zrips.CMILib.Util.CMIVersionChecker;
 import net.Zrips.CMILib.Version.Version;
@@ -1668,7 +1668,9 @@ public class ResidencePlayerListener implements Listener {
 
         Entity ent = event.getRightClicked();
 
-        if (ent.getType() != EntityType.MINECART_CHEST && ent.getType() != EntityType.MINECART_HOPPER)
+        CMIEntityType type = CMIEntityType.get(ent);
+        
+        if (type != CMIEntityType.CHEST_MINECART && type != CMIEntityType.HOPPER_MINECART)
             return;
 
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(ent.getLocation());
@@ -1953,7 +1955,7 @@ public class ResidencePlayerListener implements Listener {
             return;
 
         Location loc = event.getTo();
-        handleNewLocation(player, loc, false);
+        boolean handled = handleNewLocation(player, loc, false);
         if (plugin.isResAdminOn(player)) {
             return;
         }
