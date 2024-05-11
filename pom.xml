@@ -72,7 +72,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -142,9 +142,9 @@
         <dependency>
             <groupId>com.Zirps</groupId>
             <artifactId>CMILib</artifactId>
-            <version>1.4.1.0</version>
+            <version>1.4.7.8</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/libs/CMILib1.4.1.0.jar</systemPath>
+            <systemPath>${project.basedir}/libs/CMILib1.4.7.8.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.kingdoms</groupId>

@@ -2,6 +2,7 @@
 
 For maintenance purposes, this fork provides a converter for you to convert between Ant and Maven.  
 You can use converter.bat or converter.sh to do the conversion.   
+**Before compiling you need to make sure that this has been converted to Maven, otherwise you will get an empty jar file**  
 
 # Residence
 
