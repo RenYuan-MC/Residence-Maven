@@ -1346,6 +1346,12 @@ public class ResidenceManager implements ResidenceInterface {
 
                 ResidenceRenameEvent resevent = new ResidenceRenameEvent(res, newName, oldName);
                 plugin.getServ().getPluginManager().callEvent(resevent);
+                
+                if (resevent.isCancelled())
+                    return false;
+                
+                newName = resevent.getNewResidenceName();
+                
                 removeChunkList(oldName);
                 res.setName(newName);
 
