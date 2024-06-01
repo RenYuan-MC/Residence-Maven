@@ -1,8 +1,9 @@
 # For this fork
 
-For maintenance purposes, this fork provides a converter for you to convert between Ant and Maven.  
+This fork does not make any changes to the source code under [Zrips/Residence](https://github.com/Zrips/Residence), only adds the relevant files for compilation purposes.  
+For maintenance purposes (sync upstream), this fork provides a converter for you to convert between Ant and Maven.  
 You can use converter.bat or converter.sh to do the conversion.   
-**Before compiling you need to make sure that this has been converted to Maven, otherwise you will get an empty jar file**  
+**Before compiling you need to make sure that this has been converted to Maven, otherwise you will get an empty jar file.**  
 
 # Residence
 
