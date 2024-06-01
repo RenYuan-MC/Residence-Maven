@@ -276,16 +276,11 @@ public class ResidenceManager implements ResidenceInterface {
         if (residences.containsKey(resName.toLowerCase())) {
             plugin.msg(player, lm.Residence_AlreadyExists, residences.get(resName.toLowerCase()).getResidenceName());
             return false;
-        } 
-
+        }
+        
         newRes.BlockSellPrice = group.getSellPerBlock();
 
         if (!newRes.addArea(player, newArea, "main", resadmin, false))
-            return false;
-
-        ResidenceCreationEvent resevent = new ResidenceCreationEvent(player, resName, newRes, newArea);
-        plugin.getServ().getPluginManager().callEvent(resevent);
-        if (resevent.isCancelled())
             return false;
 
         if (Residence.getInstance().getConfigManager().isChargeOnCreation() && !newRes.isSubzone() && plugin.getConfigManager().enableEconomy() && !resadmin) {
@@ -297,6 +292,11 @@ public class ResidenceManager implements ResidenceInterface {
                 return false;
             }
         }
+
+        ResidenceCreationEvent resevent = new ResidenceCreationEvent(player, resName, newRes, newArea);
+        plugin.getServ().getPluginManager().callEvent(resevent);
+        if (resevent.isCancelled())
+            return false;
 
         residences.put(resName.toLowerCase(), newRes);
 
@@ -608,63 +608,8 @@ public class ResidenceManager implements ResidenceInterface {
 
             residences.remove(name.toLowerCase());
 
-            if (Version.isCurrentEqualOrHigher(Version.v1_13_R1) && plugin.getConfigManager().isUseClean() && plugin.getConfigManager().getCleanWorlds().contains(res.getWorld())) {
+            regenerateArea(res);
 
-                CuboidArea[] arr = res.getAreaArray();
-                CMIScheduler.runTaskAsynchronously(() -> {
-                    ChunkSnapshot chunkSnapshot = null;
-                    int chunkX = 0;
-                    int chunkZ = 0;
-                    Set<Location> locations = new HashSet<Location>();
-                    for (CuboidArea area : arr) {
-                        Location low = area.getLowLocation().clone();
-                        Location high = area.getHighLocation().clone();
-
-                        if (high.getBlockY() > plugin.getConfigManager().getCleanLevel()) {
-
-                            if (low.getBlockY() < plugin.getConfigManager().getCleanLevel())
-                                low.setY(plugin.getConfigManager().getCleanLevel());
-                            World world = low.getWorld();
-                            for (int x = low.getBlockX(); x <= high.getBlockX(); x++) {
-                                for (int z = low.getBlockZ(); z <= high.getBlockZ(); z++) {
-                                    int hy = world.getHighestBlockYAt(x, z);
-                                    if (high.getBlockY() < hy)
-                                        hy = high.getBlockY();
-
-                                    int cx = Math.abs(x % 16);
-                                    int cz = Math.abs(z % 16);
-                                    if (chunkSnapshot == null || x >> 4 != chunkX || z >> 4 != chunkZ) {
-                                        if (!world.getBlockAt(x, 0, z).getChunk().isLoaded()) {
-                                            world.getBlockAt(x, 0, z).getChunk().load();
-                                            chunkSnapshot = world.getBlockAt(x, 0, z).getChunk().getChunkSnapshot(false, false, false);
-                                            world.getBlockAt(x, 0, z).getChunk().unload();
-                                        } else {
-                                            chunkSnapshot = world.getBlockAt(x, 0, z).getChunk().getChunkSnapshot();
-                                        }
-                                        chunkX = x >> 4;
-                                        chunkZ = z >> 4;
-                                    }
-
-                                    if (Version.isCurrentEqualOrHigher(Version.v1_13_R1)) {
-                                        for (int y = low.getBlockY(); y <= hy; y++) {
-                                            BlockData type = chunkSnapshot.getBlockData(cx, y, cz);
-                                            if (!plugin.getConfigManager().getCleanBlocks().contains(type.getMaterial()))
-                                                continue;
-                                            locations.add(new Location(world, x, y, z));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    CMIScheduler.runTask(() -> {
-                        for (Location one : locations) {
-                            CMIScheduler.runAtLocation(one, () -> one.getBlock().setType(Material.AIR));
-                        }
-                    });
-
-                });
-            }
             if (plugin.getConfigManager().isRemoveLwcOnDelete() && plugin.isLwcPresent())
                 ResidenceLWCListener.removeLwcFromResidence(player, res);
             if (regenerate) {
@@ -682,17 +627,7 @@ public class ResidenceManager implements ResidenceInterface {
             }
         }
 
-        plugin.getLeaseManager().removeExpireTime(res);
-
-        for (ClaimedResidence oneSub : res.getSubzones()) {
-            plugin.getPlayerManager().removeResFromPlayer(res.getOwnerUUID(), oneSub);
-            plugin.getRentManager().removeRentable(name + "." + oneSub.getResidenceName());
-            plugin.getTransactionManager().removeFromSale(name + "." + oneSub.getResidenceName());
-        }
-
-        plugin.getPlayerManager().removeResFromPlayer(res.getOwnerUUID(), res);
-        plugin.getRentManager().removeRentable(name);
-        plugin.getTransactionManager().removeFromSale(name);
+        cleanResidenceRecords(res, true);
 
         if (!res.isServerLand()) {
             if (parent == null && plugin.getConfigManager().enableEconomy() && plugin.getConfigManager().useResMoneyBack()) {
@@ -713,16 +648,74 @@ public class ResidenceManager implements ResidenceInterface {
         }
     }
 
+    private void regenerateArea(ClaimedResidence res) {
+        if (Version.isCurrentLower(Version.v1_13_R1) || !plugin.getConfigManager().isUseClean() || !plugin.getConfigManager().getCleanWorlds().contains(res.getWorld()))
+            return;
+
+        CuboidArea[] arr = res.getAreaArray();
+        CMIScheduler.runTaskAsynchronously(() -> {
+            ChunkSnapshot chunkSnapshot = null;
+            int chunkX = 0;
+            int chunkZ = 0;
+            Set<Location> locations = new HashSet<Location>();
+            for (CuboidArea area : arr) {
+                Location low = area.getLowLocation().clone();
+                Location high = area.getHighLocation().clone();
+
+                if (high.getBlockY() <= plugin.getConfigManager().getCleanLevel())
+                    continue;
+
+                if (low.getBlockY() < plugin.getConfigManager().getCleanLevel())
+                    low.setY(plugin.getConfigManager().getCleanLevel());
+                World world = low.getWorld();
+                for (int x = low.getBlockX(); x <= high.getBlockX(); x++) {
+                    for (int z = low.getBlockZ(); z <= high.getBlockZ(); z++) {
+                        int hy = world.getHighestBlockYAt(x, z);
+                        if (high.getBlockY() < hy)
+                            hy = high.getBlockY();
+
+                        int cx = Math.abs(x % 16);
+                        int cz = Math.abs(z % 16);
+                        if (chunkSnapshot == null || x >> 4 != chunkX || z >> 4 != chunkZ) {
+                            if (!world.getBlockAt(x, 0, z).getChunk().isLoaded()) {
+                                world.getBlockAt(x, 0, z).getChunk().load();
+                                chunkSnapshot = world.getBlockAt(x, 0, z).getChunk().getChunkSnapshot(false, false, false);
+                                world.getBlockAt(x, 0, z).getChunk().unload();
+                            } else {
+                                chunkSnapshot = world.getBlockAt(x, 0, z).getChunk().getChunkSnapshot();
+                            }
+                            chunkX = x >> 4;
+                            chunkZ = z >> 4;
+                        }
+
+                        if (Version.isCurrentEqualOrHigher(Version.v1_13_R1)) {
+                            for (int y = low.getBlockY(); y <= hy; y++) {
+                                BlockData type = chunkSnapshot.getBlockData(cx, y, cz);
+                                if (!plugin.getConfigManager().getCleanBlocks().contains(type.getMaterial()))
+                                    continue;
+                                locations.add(new Location(world, x, y, z));
+                            }
+                        }
+                    }
+                }
+            }
+            CMIScheduler.runTask(() -> {
+                for (Location one : locations) {
+                    CMIScheduler.runAtLocation(one, () -> one.getBlock().setType(Material.AIR));
+                }
+            });
+        });
+    }
+
     public void removeAllByOwner(String owner) {
-        ResidencePlayer rPlayer = plugin.getPlayerManager().getResidencePlayer(owner);
+        ResidencePlayer rPlayer = ResidencePlayer.get(owner);
         for (ClaimedResidence oneRes : rPlayer.getResList()) {
             removeResidence(rPlayer, oneRes, true);
         }
     }
 
     public int getOwnedZoneCount(String player) {
-        ResidencePlayer rPlayer = plugin.getPlayerManager().getResidencePlayer(player);
-        return rPlayer.getResAmount();
+        return ResidencePlayer.get(player).getResAmount();
     }
 
     public boolean hasMaxZones(String player, int target) {
@@ -1346,12 +1339,12 @@ public class ResidenceManager implements ResidenceInterface {
 
                 ResidenceRenameEvent resevent = new ResidenceRenameEvent(res, newName, oldName);
                 plugin.getServ().getPluginManager().callEvent(resevent);
-                
+
                 if (resevent.isCancelled())
                     return false;
-                
+
                 newName = resevent.getNewResidenceName();
-                
+
                 removeChunkList(oldName);
                 res.setName(newName);
 
@@ -1460,6 +1453,9 @@ public class ResidenceManager implements ResidenceInterface {
                     if (playerExceptions.contains(next.getOwnerUUID().toString()))
                         continue;
                 }
+
+                cleanResidenceRecords(next, false);
+
                 it.remove();
                 count++;
             }
@@ -1473,6 +1469,20 @@ public class ResidenceManager implements ResidenceInterface {
         }
 
 //	plugin.getPlayerManager().fillList();
+    }
+
+    private void cleanResidenceRecords(ClaimedResidence res, boolean removeSigns) {
+        String name = res.getName();
+
+        plugin.getLeaseManager().removeExpireTime(res);
+        for (ClaimedResidence oneSub : res.getSubzones()) {
+            plugin.getPlayerManager().removeResFromPlayer(res.getOwnerUUID(), oneSub);
+            plugin.getRentManager().removeRentable(ClaimedResidence.getByName(name + "." + oneSub.getResidenceName()), removeSigns);
+            plugin.getTransactionManager().removeFromSale(ClaimedResidence.getByName(name + "." + oneSub.getResidenceName()), removeSigns);
+        }
+        plugin.getPlayerManager().removeResFromPlayer(res.getOwnerUUID(), res);
+        plugin.getRentManager().removeRentable(ClaimedResidence.getByName(name), removeSigns);
+        plugin.getTransactionManager().removeFromSale(ClaimedResidence.getByName(name), removeSigns);
     }
 
     public int getResidenceCount() {

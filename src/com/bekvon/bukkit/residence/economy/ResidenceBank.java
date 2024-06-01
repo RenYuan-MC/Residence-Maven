@@ -45,9 +45,7 @@ public class ResidenceBank {
     }
 
     public boolean hasEnough(double amount) {
-        if (storedMoney >= amount)
-            return true;
-        return false;
+        return storedMoney >= amount;
     }
 
     public void subtract(double amount) {
@@ -121,5 +119,20 @@ public class ResidenceBank {
             this.add(amount);
             Residence.getInstance().msg(sender, lm.Bank_Deposit, Residence.getInstance().getEconomyManager().format(amount));
         }
+    }
+
+    public void showBalance(CommandSender sender, boolean resadmin) {
+
+        if (!Residence.getInstance().getConfigManager().enableEconomy()) {
+            Residence.getInstance().msg(sender, lm.Economy_MarketDisabled);
+        }
+
+        if (sender instanceof Player && !resadmin && !res.isOwner(sender) && !res.getPermissions().playerHas((Player) sender, Flags.bank, FlagCombo.OnlyTrue)) {
+            Residence.getInstance().msg(sender, lm.Bank_NoAccess);
+            return;
+        }
+
+        lm.Residence_Balance.sendMessage(sender, Residence.getInstance().getEconomyManager().format(getStoredMoneyD()));
+
     }
 }

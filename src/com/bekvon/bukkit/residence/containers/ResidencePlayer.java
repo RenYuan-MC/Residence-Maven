@@ -342,16 +342,17 @@ public class ResidencePlayer {
     public void removeResidence(ClaimedResidence residence) {
         if (residence == null)
             return;
-        boolean rem = this.ResidenceList.remove(residence);
+        boolean removed = this.ResidenceList.remove(residence);
         // in case its fails to remove, double check by name
-        if (rem == false) {
-            Iterator<ClaimedResidence> iter = this.ResidenceList.iterator();
-            while (iter.hasNext()) {
-                ClaimedResidence one = iter.next();
-                if (one.getName().equalsIgnoreCase(residence.getName())) {
-                    iter.remove();
-                    break;
-                }
+        if (removed)
+            return;
+
+        Iterator<ClaimedResidence> iter = this.ResidenceList.iterator();
+        while (iter.hasNext()) {
+            ClaimedResidence one = iter.next();
+            if (one.getName().equalsIgnoreCase(residence.getName())) {
+                iter.remove();
+                break;
             }
         }
     }

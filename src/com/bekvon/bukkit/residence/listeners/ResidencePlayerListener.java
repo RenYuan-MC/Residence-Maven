@@ -93,6 +93,7 @@ import net.Zrips.CMILib.Entities.CMIEntity;
 import net.Zrips.CMILib.Entities.CMIEntityType;
 import net.Zrips.CMILib.Items.CMIItemStack;
 import net.Zrips.CMILib.Items.CMIMaterial;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
 import net.Zrips.CMILib.Util.CMIVersionChecker;
 import net.Zrips.CMILib.Version.Version;
@@ -984,7 +985,7 @@ public class ResidencePlayerListener implements Listener {
 
     private boolean isContainer(Material mat, Block block) {
         return FlagPermissions.getMaterialUseFlagList().containsKey(mat) && FlagPermissions.getMaterialUseFlagList().get(mat).equals(Flags.container)
-            || plugin.getConfigManager().getCustomContainers().contains(CMIMaterial.get(block));
+            || plugin.getConfigManager().getCustomContainers().contains(block.getType());
     }
 
     private boolean isCanUseEntity_RClickOnly(Material mat, Block block) {
@@ -1041,7 +1042,7 @@ public class ResidencePlayerListener implements Listener {
                 return true;
         }
 
-        return plugin.getConfigManager().getCustomRightClick().contains(CMIMaterial.get(block));
+        return plugin.getConfigManager().getCustomRightClick().contains(block.getType());
     }
 
     public static boolean isCanUseEntity_BothClick(Material mat, Block block) {
@@ -1066,7 +1067,7 @@ public class ResidencePlayerListener implements Listener {
         case DRAGON_EGG:
             return true;
         default:
-            return Residence.getInstance().getConfigManager().getCustomBothClick().contains(CMIMaterial.get(block));
+            return Residence.getInstance().getConfigManager().getCustomBothClick().contains(block.getType());
         }
     }
 
@@ -1533,7 +1534,7 @@ public class ResidencePlayerListener implements Listener {
                 }
             }
 
-            if (plugin.getConfigManager().getCustomContainers().contains(blockM)) {
+            if (plugin.getConfigManager().getCustomContainers().contains(mat)) {
                 if (!perms.playerHas(player, Flags.container, hasuse)
                     || !ResPerm.bypass_container.hasPermission(player, 10000L)) {
                     event.setCancelled(true);
@@ -1542,12 +1543,12 @@ public class ResidencePlayerListener implements Listener {
                 }
             }
 
-            if (plugin.getConfigManager().getCustomBothClick().contains(blockM) && !hasuse) {
+            if (plugin.getConfigManager().getCustomBothClick().contains(mat) && !hasuse) {
                 event.setCancelled(true);
                 plugin.msg(player, lm.Flag_Deny, Flags.use);
                 return;
             }
-            if (plugin.getConfigManager().getCustomRightClick().contains(blockM) && event.getAction() == Action.RIGHT_CLICK_BLOCK && !hasuse) {
+            if (plugin.getConfigManager().getCustomRightClick().contains(mat) && event.getAction() == Action.RIGHT_CLICK_BLOCK && !hasuse) {
                 event.setCancelled(true);
                 plugin.msg(player, lm.Flag_Deny, Flags.use);
             }
@@ -1669,7 +1670,7 @@ public class ResidencePlayerListener implements Listener {
         Entity ent = event.getRightClicked();
 
         CMIEntityType type = CMIEntityType.get(ent);
-        
+
         if (type != CMIEntityType.CHEST_MINECART && type != CMIEntityType.HOPPER_MINECART)
             return;
 
@@ -1865,11 +1866,18 @@ public class ResidencePlayerListener implements Listener {
 
         Location loc = event.getBlockClicked().getLocation().clone();
 
-        if (Version.isCurrentHigher(Version.v1_12_R1))
-            try {
-                loc.add(event.getBlockFace().getDirection());
-            } catch (Throwable e) {
-            }
+        if (Version.isCurrentHigher(Version.v1_12_R1)) {
+
+            if (Version.isCurrentHigher(Version.v1_13_R1) && event.getBlockClicked().getBlockData() instanceof org.bukkit.block.data.Waterlogged) {
+                org.bukkit.block.data.Waterlogged waterloggedBlock = (org.bukkit.block.data.Waterlogged) event.getBlockClicked().getBlockData();
+                if (waterloggedBlock.isWaterlogged())
+                    loc.add(event.getBlockFace().getDirection());
+            } else
+                try {
+                    loc.add(event.getBlockFace().getDirection());
+                } catch (Throwable e) {
+                }
+        }
 
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(loc);
         if (res != null) {

@@ -37,6 +37,7 @@ import com.bekvon.bukkit.residence.containers.RandomTeleport;
 import com.bekvon.bukkit.residence.protection.FlagPermissions;
 import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagState;
 
+import net.Zrips.CMILib.CMILib;
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMINumber;
 import net.Zrips.CMILib.Effects.CMIEffectManager.CMIParticle;
@@ -222,9 +223,9 @@ public class ConfigManager {
     protected boolean CreeperExplodeBelow;
     protected int CreeperExplodeBelowLevel;
 
-    protected List<CMIMaterial> customContainers = new ArrayList<CMIMaterial>();
-    protected List<CMIMaterial> customBothClick = new ArrayList<CMIMaterial>();
-    protected List<CMIMaterial> customRightClick = new ArrayList<CMIMaterial>();
+    protected List<Material> customContainers = new ArrayList<Material>();
+    protected List<Material> customBothClick = new ArrayList<Material>();
+    protected List<Material> customRightClick = new ArrayList<Material>();
     protected List<Material> CleanBlocks = new ArrayList<Material>();
 
     protected List<String> NoFlowWorlds;
@@ -1288,23 +1289,23 @@ public class ConfigManager {
 
         c.addComment("Global.CustomContainers", "Experimental - The following settings are lists of block IDs to be used as part of the checks for the 'container' and 'use' flags when using mods.");
         List<String> pls = c.get("Global.CustomContainers", new ArrayList<String>());
-        for (Object one : pls) {
-            CMIMaterial mat = CMIMaterial.get(String.valueOf(one));
-            if (mat != CMIMaterial.NONE)
+        for (String one : pls) {
+            Material mat = CMILib.getInstance().getItemManager().getMaterial(one);
+            if (mat != null)
                 customContainers.add(mat);
         }
 
         pls = c.get("Global.CustomBothClick", new ArrayList<String>());
-        for (Object one : pls) {
-            CMIMaterial mat = CMIMaterial.get(String.valueOf(one));
-            if (mat != CMIMaterial.NONE)
+        for (String one : pls) {
+            Material mat = CMILib.getInstance().getItemManager().getMaterial(one);
+            if (mat != null)
                 customBothClick.add(mat);
         }
 
         pls = c.get("Global.CustomRightClick", new ArrayList<String>());
-        for (Object one : pls) {
-            CMIMaterial mat = CMIMaterial.get(String.valueOf(one));
-            if (mat != CMIMaterial.NONE)
+        for (String one : pls) {
+            Material mat = CMILib.getInstance().getItemManager().getMaterial(one);
+            if (mat != null)
                 customRightClick.add(mat);
         }
 
@@ -2138,15 +2139,15 @@ public class ConfigManager {
         return OfflineMode;
     }
 
-    public List<CMIMaterial> getCustomContainers() {
+    public List<Material> getCustomContainers() {
         return customContainers;
     }
 
-    public List<CMIMaterial> getCustomBothClick() {
+    public List<Material> getCustomBothClick() {
         return customBothClick;
     }
 
-    public List<CMIMaterial> getCustomRightClick() {
+    public List<Material> getCustomRightClick() {
         return customRightClick;
     }
 

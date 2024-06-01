@@ -104,7 +104,7 @@ public class ResidenceEntityListener implements Listener {
         // Disabling listener if flag disabled globally
         if (!Flags.nomobs.isGlobalyEnabled())
             return;
-
+        
         Entity entity = event.getEntity();
         if (entity == null)
             return;
@@ -141,7 +141,7 @@ public class ResidenceEntityListener implements Listener {
         Entity entity = event.getEntity();
         FlagPermissions perms = plugin.getPermsByLoc(block.getLocation());
         boolean hastrample = perms.has(Flags.trample, perms.has(Flags.build, true));
-        if (!hastrample && !(entity.getType() == EntityType.FALLING_BLOCK) && (mat.equals(CMIMaterial.FARMLAND) || mat.equals(CMIMaterial.SOUL_SAND))) {
+        if (!hastrample && entity.getType() != EntityType.FALLING_BLOCK && (mat.equals(CMIMaterial.FARMLAND) || mat.equals(CMIMaterial.SOUL_SAND))) {
             event.setCancelled(true);
         }
     }

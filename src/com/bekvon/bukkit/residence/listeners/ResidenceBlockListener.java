@@ -398,18 +398,25 @@ public class ResidenceBlockListener implements Listener {
         if (event.getEntityType() != EntityType.FALLING_BLOCK)
             return;
         Entity ent = event.getEntity();
-        if (!ent.hasMetadata(SourceResidenceName)) {
+
+        if (!ent.hasMetadata(SourceResidenceName) && /* Equals to air when generic falling block is spawned, not when falling block originates from spawnegg */ event.getTo() == Material.AIR) {
+
             ClaimedResidence res = plugin.getResidenceManager().getByLoc(ent.getLocation());
             String resName = res == null ? "NULL" : res.getName();
             ent.setMetadata(SourceResidenceName, new FixedMetadataValue(plugin, resName));
         } else {
-            String saved = ent.getMetadata(SourceResidenceName).get(0).asString();
+
             ClaimedResidence res = plugin.getResidenceManager().getByLoc(ent.getLocation());
 
             if (res != null && res.getPermissions().has(Flags.fallinprotection, FlagCombo.OnlyFalse))
                 return;
 
             String resName = res == null ? "NULL" : res.getName();
+
+            String saved = "NULL";
+            if (ent.hasMetadata(SourceResidenceName))
+                saved = ent.getMetadata(SourceResidenceName).get(0).asString();
+
             if (!saved.equalsIgnoreCase(resName)) {
                 event.setCancelled(true);
                 ent.remove();
@@ -444,7 +451,6 @@ public class ResidenceBlockListener implements Listener {
 
         if (block.getY() <= plugin.getConfigManager().getBlockFallLevel())
             return;
-
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(block.getLocation());
         Location loc = new Location(block.getLocation().getWorld(), block.getX(), block.getY(), block.getZ());
         for (int i = loc.getBlockY() - 1; i >= plugin.getConfigManager().getBlockFallLevel() - 1; i--) {

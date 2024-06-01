@@ -35,11 +35,7 @@ public class IConomy6Adapter implements EconomyInterface {
     public boolean canAfford(String playerName, double amount) {
         if (amount < 0) return false;
         checkExist(playerName);
-        double holdings = this.getBalance(playerName);
-        if (holdings >= amount) {
-            return true;
-        }
-        return false;
+        return this.getBalance(playerName) >= amount;
     }
 
     @Override

@@ -311,14 +311,17 @@ public class ClaimedResidence {
             return true;
         ResidencePlayer rPlayer = Residence.getInstance().getPlayerManager().getResidencePlayer(player);
         PermissionGroup group = rPlayer.getGroup();
+
         if (area.getXSize() > rPlayer.getMaxX()) {
             Residence.getInstance().msg(player, lm.Area_ToBigX, area.getXSize(), rPlayer.getMaxX());
             return false;
         }
-        if (area.getYSize() > group.getMaxY() + (-group.getMinY())) {
+
+        if (area.getYSize() > group.getMaxY()) {
             Residence.getInstance().msg(player, lm.Area_ToBigY, area.getYSize(), group.getMaxY());
             return false;
         }
+
         if (area.getZSize() > rPlayer.getMaxZ()) {
             Residence.getInstance().msg(player, lm.Area_ToBigZ, area.getZSize(), rPlayer.getMaxZ());
             return false;
@@ -403,6 +406,7 @@ public class ClaimedResidence {
             }
             return false;
         }
+
         if (getParent() == null) {
             String collideResidence = Residence.getInstance().getResidenceManager().checkAreaCollision(area, this);
             ClaimedResidence cRes = Residence.getInstance().getResidenceManager().getByName(collideResidence);
@@ -1472,11 +1476,12 @@ public class ClaimedResidence {
             int distance = isSafeTp(reqPlayer);
             if (distance > 6) {
                 if (distance == 556)
-                    Residence.getInstance().msg(reqPlayer, lm.General_TeleportConfirmLava, distance);
+                    lm.General_TeleportConfirmLava.sendMessage(reqPlayer, distance);
                 else if (distance == 555)
-                    Residence.getInstance().msg(reqPlayer, lm.General_TeleportConfirmVoid, distance);
+                    lm.General_TeleportConfirmVoid.sendMessage(reqPlayer, distance);
                 else
-                    Residence.getInstance().msg(reqPlayer, lm.General_TeleportConfirm, distance);
+                    lm.General_TeleportConfirm.sendMessage(reqPlayer, distance);
+
                 Residence.getInstance().getTeleportMap().put(reqPlayer.getName(), this);
                 return;
             }
@@ -1485,6 +1490,7 @@ public class ClaimedResidence {
         boolean bypassDelay = ResPerm.tpdelaybypass.hasPermission(targetPlayer);
 
         if (Residence.getInstance().getConfigManager().getTeleportDelay() > 0 && !isAdmin && !resadmin && !bypassDelay) {
+
             Residence.getInstance().msg(reqPlayer, lm.General_TeleportStarted, this.getName(),
                 Residence.getInstance().getConfigManager().getTeleportDelay());
             if (Residence.getInstance().getConfigManager().isTeleportTitleMessage())
@@ -1536,17 +1542,19 @@ public class ClaimedResidence {
         CMIScheduler.runAtLocationLater(targloc, () -> {
             if (targloc == null || targetPlayer == null || !targetPlayer.isOnline())
                 return;
-            if (!Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName())
-                && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
+
+            if (!Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()) && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
                 return;
             else if (Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()))
                 Residence.getInstance().getTeleportDelayMap().remove(targetPlayer.getName());
+
             targetPlayer.closeInventory();
             CMITeleporter.teleportAsync(targetPlayer, targloc);
             if (near)
                 Residence.getInstance().msg(targetPlayer, lm.Residence_TeleportNear);
             else
                 Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
+
         }, Residence.getInstance().getConfigManager().getTeleportDelay() * 20L);
     }
 
@@ -2387,5 +2395,9 @@ public class ClaimedResidence {
             }
         }
         return trusted;
+    }
+
+    public static ClaimedResidence getByName(String landName) {
+        return Residence.getInstance().getResidenceManager().getByName(landName);
     }
 }

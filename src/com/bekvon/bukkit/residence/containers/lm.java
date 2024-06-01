@@ -288,6 +288,8 @@ public enum lm {
     Residence_ChangedMain("&eChanged main residence to &6%1"),
     Residence_LwcRemoved("&eRemoved &6%1 &eLwc protections in &6%2ms"),
 
+    Residence_Balance("&eBalance: &6%1"),
+    
     Residence_CanBeRented("&6%1&e can be rented for &6%2 &eper &6%3 &edays. &6/res market rent"),
     Residence_CanBeBought("&6%1&e can be bought for &6%2&e. &6/res market buy"),
 
