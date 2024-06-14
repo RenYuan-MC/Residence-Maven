@@ -1406,6 +1406,10 @@ public class ClaimedResidence {
 
         if (tpLoc == null)
             return 0;
+        
+        // Temp fix for Folia.
+        if (Version.isFolia())
+            return 0;
 
         Location tempLoc = this.getTeleportLocation(player, false);
 
