@@ -7,9 +7,6 @@ import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import net.Zrips.CMILib.FileHandler.ConfigReader;
-import net.Zrips.CMILib.Version.Teleporters.CMITeleporter;
-
 import com.bekvon.bukkit.residence.LocaleManager;
 import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.containers.CommandAnnotation;
@@ -21,10 +18,14 @@ import com.bekvon.bukkit.residence.permissions.PermissionGroup;
 import com.bekvon.bukkit.residence.permissions.PermissionManager.ResPerm;
 import com.bekvon.bukkit.residence.protection.ClaimedResidence;
 
+import net.Zrips.CMILib.FileHandler.ConfigReader;
+import net.Zrips.CMILib.Locale.LC;
+import net.Zrips.CMILib.Version.Teleporters.CMITeleporter;
+
 public class kick implements cmd {
 
     @Override
-    @CommandAnnotation(simple = true, priority = 2200)
+    @CommandAnnotation(priority = 2200)
     public Boolean perform(Residence plugin, CommandSender sender, String[] args, boolean resadmin) {
         if (!(sender instanceof Player))
             return false;
@@ -64,23 +65,33 @@ public class kick implements cmd {
             return true;
         }
 
-        if (res.getPlayersInResidence().contains(targetplayer)) {
+        if (!res.getPlayersInResidence().contains(targetplayer))
+            return false;
 
-            if (ResPerm.command_kick_bypass.hasPermission(targetplayer)) {
-                plugin.msg(sender, lm.Residence_CantKick);
-                return true;
-            }
-            Location loc = plugin.getConfigManager().getKickLocation();
-            targetplayer.closeInventory();
-            if (loc != null)
-                CMITeleporter.teleportAsync(targetplayer, loc);
-            else {
-                loc = res.getOutsideFreeLoc(player.getLocation(), player, true);
-                if (loc != null)
-                    CMITeleporter.teleportAsync(targetplayer, loc);
-            }
-            plugin.msg(targetplayer, lm.Residence_Kicked);
+        if (ResPerm.command_kick_bypass.hasPermission(targetplayer)) {
+            plugin.msg(sender, lm.Residence_CantKick);
+            return true;
         }
+
+        Location loc = plugin.getConfigManager().getKickLocation();
+        targetplayer.closeInventory();
+
+        if (loc == null)
+            loc = res.getOutsideFreeLoc(targetplayer.getLocation(), targetplayer, true);
+
+        if (loc == null) {
+            LC.info_IncorrectLocation.getLocale();
+            return true;
+        }
+
+        CMITeleporter.teleportAsync(targetplayer, loc).thenApply(success -> {
+            if (success)
+                plugin.msg(targetplayer, lm.Residence_Kicked);
+            else
+                plugin.msg(targetplayer, lm.General_TeleportCanceled);
+            return null;
+        });
+
         return true;
     }
 
