@@ -104,7 +104,7 @@ public class ResidenceEntityListener implements Listener {
         // Disabling listener if flag disabled globally
         if (!Flags.nomobs.isGlobalyEnabled())
             return;
-        
+
         Entity entity = event.getEntity();
         if (entity == null)
             return;
@@ -228,6 +228,9 @@ public class ResidenceEntityListener implements Listener {
         if (res.getPermissions().playerHas(cause, Flags.animalkilling, FlagCombo.OnlyFalse)) {
             plugin.msg(cause, lm.Residence_FlagDeny, Flags.animalkilling, res.getName());
             attackevent.setCancelled(true);
+
+            if (damager instanceof Arrow)
+                damager.remove();
         }
 
     }
@@ -308,7 +311,8 @@ public class ResidenceEntityListener implements Listener {
         FlagPermissions world = plugin.getWorldFlags().getPerms(entity.getWorld().getName());
         if (!perms.has(Flags.animalkilling, world.has(Flags.animalkilling, true))) {
             event.setCancelled(true);
-            return;
+            if (damager instanceof Arrow)
+                damager.remove();
         }
     }
 
@@ -337,9 +341,11 @@ public class ResidenceEntityListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void VehicleDestroy(VehicleDestroyEvent event) {
+
         // Disabling listener if flag disabled globally
         if (!Flags.vehicledestroy.isGlobalyEnabled())
             return;
+
         // disabling event on world
         Entity damager = event.getAttacker();
         if (damager == null)
@@ -350,14 +356,42 @@ public class ResidenceEntityListener implements Listener {
 
         Vehicle vehicle = event.getVehicle();
 
-        if (vehicle == null)
+        if (!vehicleDamageable(damager, vehicle))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void vehicleCombust(EntityCombustByEntityEvent event) {
+
+        // Disabling listener if flag disabled globally
+        if (!Flags.vehicledestroy.isGlobalyEnabled())
             return;
+
+        // disabling event on world
+        Entity damager = event.getCombuster();
+        if (damager == null)
+            return;
+
+        if (plugin.isDisabledWorldListener(damager.getWorld()))
+            return;
+
+        if (!(event.getEntity() instanceof Vehicle))
+            return;
+
+        Vehicle vehicle = (Vehicle) event.getEntity();
+
+        if (!vehicleDamageable(damager, vehicle))
+            event.setCancelled(true);
+    }
+
+    private boolean vehicleDamageable(Entity damager, Vehicle vehicle) {
+        if (vehicle == null)
+            return true;
 
         if (damager instanceof Projectile && !(((Projectile) damager).getShooter() instanceof Player) || !(damager instanceof Player)) {
             FlagPermissions perms = plugin.getPermsByLoc(vehicle.getLocation());
             if (!perms.has(Flags.vehicledestroy, true)) {
-                event.setCancelled(true);
-                return;
+                return false;
             }
         }
 
@@ -370,20 +404,22 @@ public class ResidenceEntityListener implements Listener {
         }
 
         if (cause == null)
-            return;
+            return true;
 
         if (plugin.isResAdminOn(cause))
-            return;
+            return true;
 
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(vehicle.getLocation());
 
         if (res == null)
-            return;
+            return true;
 
         if (res.getPermissions().playerHas(cause, Flags.vehicledestroy, FlagCombo.OnlyFalse)) {
             plugin.msg(cause, lm.Residence_FlagDeny, Flags.vehicledestroy, res.getName());
-            event.setCancelled(true);
+            return false;
         }
+
+        return true;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -431,6 +467,8 @@ public class ResidenceEntityListener implements Listener {
         if (res.getPermissions().playerHas(cause, Flags.mobkilling, FlagCombo.OnlyFalse)) {
             plugin.msg(cause, lm.Residence_FlagDeny, Flags.mobkilling, res.getName());
             event.setCancelled(true);
+            if (damager instanceof Arrow)
+                damager.remove();
         }
     }
 
@@ -1153,6 +1191,7 @@ public class ResidenceEntityListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void PlayerKillingByFlame(EntityCombustByEntityEvent event) {
+
         // Disabling listener if flag disabled globally
         if (!Flags.pvp.isGlobalyEnabled())
             return;
@@ -1199,6 +1238,7 @@ public class ResidenceEntityListener implements Listener {
 
     @EventHandler
     public void OnFallDamage(EntityDamageEvent event) {
+
         // Disabling listener if flag disabled globally
         if (!Flags.falldamage.isGlobalyEnabled())
             return;
@@ -1576,6 +1616,17 @@ public class ResidenceEntityListener implements Listener {
         return true;
     }
 
+    private void process(lm lm, Player attacker, boolean isOnFire, Entity ent, EntityDamageEvent event, Entity damager) {
+        if (attacker != null)
+            plugin.msg(attacker, lm);
+        if (isOnFire)
+            ent.setFireTicks(0);
+        event.setCancelled(true);
+
+        if (damager instanceof Arrow)
+            damager.remove();
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
         // disabling event on world
@@ -1669,11 +1720,7 @@ public class ResidenceEntityListener implements Listener {
                 }
 
                 if (!srcpvp && !isSnowBall || !allowSnowBall && isSnowBall) {
-                    if (attacker != null)
-                        plugin.msg(attacker, lm.General_NoPVPZone);
-                    if (isOnFire)
-                        ent.setFireTicks(0);
-                    event.setCancelled(true);
+                    process(lm.General_NoPVPZone, attacker, isOnFire, ent, event, damager);
                     return;
                 }
 
@@ -1682,11 +1729,7 @@ public class ResidenceEntityListener implements Listener {
                     /* World PvP */
                     if (damager != null)
                         if (!plugin.getWorldFlags().getPerms(damager.getWorld().getName()).has(Flags.pvp, FlagCombo.TrueOrNone)) {
-                            if (attacker != null)
-                                plugin.msg(attacker, lm.General_WorldPVPDisabled);
-                            if (isOnFire)
-                                ent.setFireTicks(0);
-                            event.setCancelled(true);
+                            process(lm.General_WorldPVPDisabled, attacker, isOnFire, ent, event, damager);
                             return;
                         }
 
@@ -1694,21 +1737,14 @@ public class ResidenceEntityListener implements Listener {
                     if (attacker != null) {
                         FlagPermissions aPerm = plugin.getPermsByLoc(attacker.getLocation());
                         if (!aPerm.has(Flags.pvp, FlagCombo.TrueOrNone)) {
-                            plugin.msg(attacker, lm.General_NoPVPZone);
-                            if (isOnFire)
-                                ent.setFireTicks(0);
-                            event.setCancelled(true);
+                            process(lm.General_NoPVPZone, attacker, isOnFire, ent, event, damager);
                             return;
                         }
                     }
                 } else {
                     /* Normal PvP */
                     if (!isSnowBall && !area.getPermissions().has(Flags.pvp, FlagCombo.TrueOrNone) || isSnowBall && !allowSnowBall) {
-                        if (attacker != null)
-                            plugin.msg(attacker, lm.General_NoPVPZone);
-                        if (isOnFire)
-                            ent.setFireTicks(0);
-                        event.setCancelled(true);
+                        process(lm.General_NoPVPZone, attacker, isOnFire, ent, event, damager);
                         return;
                     }
                 }

@@ -127,6 +127,7 @@ import com.bekvon.bukkit.residence.text.help.InformationPager;
 import com.bekvon.bukkit.residence.utils.CrackShot;
 import com.bekvon.bukkit.residence.utils.FileCleanUp;
 import com.bekvon.bukkit.residence.utils.RandomTp;
+import com.bekvon.bukkit.residence.utils.SafeLocationCache;
 import com.bekvon.bukkit.residence.utils.Sorting;
 import com.bekvon.bukkit.residence.utils.TabComplete;
 import com.bekvon.bukkit.residence.vaultinterface.ResidenceVaultAdapter;
@@ -241,7 +242,7 @@ public class Residence extends JavaPlugin {
 
     public HashMap<String, Long> rtMap = new HashMap<String, Long>();
     public List<String> teleportDelayMap = new ArrayList<String>();
-    public HashMap<String, ClaimedResidence> teleportMap = new HashMap<String, ClaimedResidence>();
+    public HashMap<UUID, SafeLocationCache> teleportMap = new HashMap<UUID, SafeLocationCache>();
 
     private Placeholder Placeholder;
     private boolean PlaceholderAPIEnabled = false;
@@ -252,7 +253,7 @@ public class Residence extends JavaPlugin {
         return spigotPlatform;
     }
 
-    public HashMap<String, ClaimedResidence> getTeleportMap() {
+    public HashMap<UUID, SafeLocationCache> getTeleportMap() {
         return teleportMap;
     }
 
@@ -324,69 +325,40 @@ public class Residence extends JavaPlugin {
     }
     // API end
 
-    private Runnable doHeals = new Runnable() {
-        @Override
-        public void run() {
-            plistener.doHeals();
+    private Runnable doHeals = () -> plistener.doHeals();
+
+    private Runnable doFeed = () -> plistener.feed();
+
+    private Runnable removeBadEffects = () -> plistener.badEffects();
+
+    private Runnable DespawnMobs = () -> plistener.DespawnMobs();
+
+    private Runnable rentExpire = () -> {
+        rentmanager.checkCurrentRents();
+        if (getConfigManager().showIntervalMessages()) {
+            Bukkit.getConsoleSender().sendMessage(getPrefix() + " - Rent Expirations checked!");
         }
     };
 
-    private Runnable doFeed = new Runnable() {
-        @Override
-        public void run() {
-            plistener.feed();
+    private Runnable leaseExpire = () -> {
+        leasemanager.doExpirations();
+        if (getConfigManager().showIntervalMessages()) {
+            Bukkit.getConsoleSender().sendMessage(getPrefix() + " - Lease Expirations checked!");
         }
     };
 
-    private Runnable removeBadEffects = new Runnable() {
-        @Override
-        public void run() {
-            plistener.badEffects();
-        }
-    };
+    private Runnable autoSave = () -> {
+        if (!initsuccess)
+            return;
 
-    private Runnable DespawnMobs = new Runnable() {
-        @Override
-        public void run() {
-            plistener.DespawnMobs();
-        }
-    };
-
-    private Runnable rentExpire = new Runnable() {
-        @Override
-        public void run() {
-            rentmanager.checkCurrentRents();
-            if (getConfigManager().showIntervalMessages()) {
-                Bukkit.getConsoleSender().sendMessage(getPrefix() + " - Rent Expirations checked!");
-            }
-        }
-    };
-    private Runnable leaseExpire = new Runnable() {
-        @Override
-        public void run() {
-            leasemanager.doExpirations();
-            if (getConfigManager().showIntervalMessages()) {
-                Bukkit.getConsoleSender().sendMessage(getPrefix() + " - Lease Expirations checked!");
-            }
-        }
-    };
-    private Runnable autoSave = new Runnable() {
-        @Override
-        public void run() {
+        CMIScheduler.runTaskAsynchronously(() -> {
             try {
-                if (initsuccess) {
-                    CMIScheduler.runTaskAsynchronously(() -> {
-                        try {
-                            saveYml();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                }
-            } catch (Exception ex) {
-                Logger.getLogger("Minecraft").log(Level.SEVERE, getPrefix() + " SEVERE SAVE ERROR", ex);
+                saveYml();
+            } catch (Throwable e) {
+                Logger.getLogger("Minecraft").log(Level.SEVERE, getPrefix() + " SEVERE SAVE ERROR", e);
+                e.printStackTrace();
             }
-        }
+        });
     };
 
     public void reloadPlugin() {
@@ -1861,7 +1833,7 @@ public class Residence extends JavaPlugin {
         if (offPlayer != null)
             return offPlayer;
 
-        Player player = Bukkit.getPlayer(Name);
+        Player player = Bukkit.getPlayerExact(Name);
         if (player != null)
             return player;
 
