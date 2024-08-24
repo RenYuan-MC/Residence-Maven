@@ -6,7 +6,7 @@
 
     <groupId>com.bekvon</groupId>
     <artifactId>Residence</artifactId>
-    <version>5.1.5.2</version>
+    <version>5.1.6.2</version>
     <packaging>jar</packaging>
 
     <name>Residence</name>
@@ -142,9 +142,9 @@
         <dependency>
             <groupId>com.Zirps</groupId>
             <artifactId>CMILib</artifactId>
-            <version>1.4.7.8</version>
+            <version>1.5.1.1</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/libs/CMILib1.4.7.8.jar</systemPath>
+            <systemPath>${project.basedir}/libs/CMILib1.5.1.1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.kingdoms</groupId>
