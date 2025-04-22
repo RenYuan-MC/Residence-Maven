@@ -6,7 +6,7 @@
 
     <groupId>com.bekvon</groupId>
     <artifactId>Residence</artifactId>
-    <version>5.1.6.2</version>
+    <version>5.1.7.4</version>
     <packaging>jar</packaging>
 
     <name>Residence</name>
@@ -72,7 +72,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version>
+            <version>1.21.5-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -142,9 +142,9 @@
         <dependency>
             <groupId>com.Zirps</groupId>
             <artifactId>CMILib</artifactId>
-            <version>1.5.1.1</version>
+            <version>1.5.4.2</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/libs/CMILib1.5.1.1.jar</systemPath>
+            <systemPath>${project.basedir}/libs/CMILib1.5.4.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.kingdoms</groupId>
