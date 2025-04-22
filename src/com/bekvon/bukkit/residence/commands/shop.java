@@ -93,7 +93,7 @@ public class shop implements cmd {
                 return true;
             }
 
-            List<ShopVote> VoteList = res.GetShopVotes();
+            List<ShopVote> VoteList = res.getAllShopVotes();
 
             String separator = plugin.msg(lm.InformationPage_SmallSeparator);
 
@@ -187,7 +187,7 @@ public class shop implements cmd {
             return true;
         }
 
-        if (args.length == 1 && args[0].equalsIgnoreCase("DeleteBoard")) {
+        if (args.length == 1 && args[0].equalsIgnoreCase("deleteboard")) {
 
             if (!resadmin) {
                 plugin.msg(player, lm.General_AdminOnly);
@@ -368,8 +368,8 @@ public class shop implements cmd {
 
 //	    ConcurrentHashMap<String, List<ShopVote>> VoteList = plugin.getShopSignUtilManager().GetAllVoteList();
 
-            if (!res.GetShopVotes().isEmpty()) {
-                List<ShopVote> list = res.GetShopVotes();
+            if (!res.getAllShopVotes().isEmpty()) {
+                List<ShopVote> list = res.getAllShopVotes();
                 boolean found = false;
                 for (ShopVote OneVote : list) {
                     if (OneVote.getName().equalsIgnoreCase(player.getName()) || OneVote.getUuid() != null && OneVote.getUuid() == player.getUniqueId()) {
@@ -401,7 +401,7 @@ public class shop implements cmd {
                 else
                     plugin.msg(player, lm.Shop_Voted, vote, resName);
             }
-            plugin.getShopSignUtilManager().saveShopVotes();
+            plugin.getShopSignUtilManager().saveShopVotes(true);
             plugin.getShopSignUtilManager().boardUpdate();
             return true;
         }
@@ -418,6 +418,7 @@ public class shop implements cmd {
         c.setFullPath(c.getPath() + "SubCommands.");
         c.get("list.Description", "Shows list of res shops");
         c.get("list.Info", Arrays.asList("&eUsage: &6/res shop list", "Shows full list of all residences with shop flag"));
+        LocaleManager.addTabCompleteSub(this, "list");
 
         c.get("vote.Description", "Vote for residence shop");
         c.get("vote.Info", Arrays.asList("&eUsage: &6/res shop vote <residence> [amount]", "Votes for current or defined residence"));

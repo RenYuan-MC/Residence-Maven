@@ -66,7 +66,7 @@ public class PermissionManager {
     }
 
     public void startCacheClearScheduler() {
-        autoCacheClear = CMIScheduler.scheduleSyncRepeatingTask(cacheClear, cacheClearDelay * 20L, cacheClearDelay * 20L);
+        autoCacheClear = CMIScheduler.scheduleSyncRepeatingTask(plugin, cacheClear, cacheClearDelay * 20L, cacheClearDelay * 20L);
     }
 
     public void stopCacheClearScheduler() {
@@ -282,7 +282,7 @@ public class PermissionManager {
         command_$1("Gives access to particular command", "commandName"),
         command_$1_others("Allows to perform command on another player", "commandName");
 
-        private Boolean show = true;
+        private boolean show = true;
         private String desc;
         private String[] wars;
         private String fixedPermission = null;

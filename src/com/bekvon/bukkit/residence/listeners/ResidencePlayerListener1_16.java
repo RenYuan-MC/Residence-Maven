@@ -8,15 +8,17 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-import net.Zrips.CMILib.Logs.CMIDebug;
-import net.Zrips.CMILib.Version.Version;
 import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.containers.Flags;
+import com.bekvon.bukkit.residence.containers.ResAdmin;
 import com.bekvon.bukkit.residence.containers.lm;
 import com.bekvon.bukkit.residence.protection.ClaimedResidence;
 import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagCombo;
+
+import net.Zrips.CMILib.Version.Version;
 
 public class ResidencePlayerListener1_16 implements Listener {
 
@@ -24,6 +26,28 @@ public class ResidencePlayerListener1_16 implements Listener {
 
     public ResidencePlayerListener1_16(Residence plugin) {
         this.plugin = plugin;
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onLightningStrikeEvent(LightningStrikeEvent event) {
+
+        if (!event.getCause().equals(LightningStrikeEvent.Cause.TRIDENT))
+            return;
+
+        if (!Flags.animalkilling.isGlobalyEnabled())
+            return;
+
+        // disabling event on world
+        if (plugin.isDisabledWorldListener(event.getWorld()))
+            return;
+
+        ClaimedResidence res = plugin.getResidenceManager().getByLoc(event.getLightning().getLocation());
+
+        if (res == null)
+            return;
+
+        if (res.getPermissions().has(Flags.animalkilling, FlagCombo.OnlyFalse))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -55,7 +79,7 @@ public class ResidencePlayerListener1_16 implements Listener {
             if (res == null)
                 return;
 
-            if (!res.isOwner(player) && !res.getPermissions().playerHas(player, Flags.anchor, FlagCombo.OnlyTrue) && !plugin.isResAdminOn(player)) {
+            if (!res.isOwner(player) && !res.getPermissions().playerHas(player, Flags.anchor, FlagCombo.OnlyTrue) && !ResAdmin.isResAdmin(player)) {
                 plugin.msg(player, lm.Residence_FlagDeny, Flags.anchor, res.getName());
                 event.setCancelled(true);
             }
@@ -65,7 +89,7 @@ public class ResidencePlayerListener1_16 implements Listener {
             if (res == null)
                 return;
 
-            if (!res.isOwner(player) && !res.getPermissions().playerHas(player, Flags.build, FlagCombo.TrueOrNone) && !plugin.isResAdminOn(player)) {
+            if (!res.isOwner(player) && !res.getPermissions().playerHas(player, Flags.build, FlagCombo.TrueOrNone) && !ResAdmin.isResAdmin(player)) {
                 plugin.msg(player, lm.Residence_FlagDeny, Flags.build, res.getName());
                 event.setCancelled(true);
             }

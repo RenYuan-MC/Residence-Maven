@@ -24,21 +24,18 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import com.bekvon.bukkit.residence.Residence;
-import com.bekvon.bukkit.residence.commands.padd;
 import com.bekvon.bukkit.residence.containers.Flags;
 import com.bekvon.bukkit.residence.containers.MinimizeFlags;
 import com.bekvon.bukkit.residence.containers.ResidencePlayer;
 import com.bekvon.bukkit.residence.containers.lm;
 import com.bekvon.bukkit.residence.permissions.PermissionGroup;
 import com.bekvon.bukkit.residence.permissions.PermissionManager.ResPerm;
-import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagCombo;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Items.CMIMC;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
 
@@ -77,6 +74,7 @@ public class FlagPermissions {
         public String getName() {
             return name().toLowerCase();
         }
+
     }
 
     public static void addMaterialToUseFlag(Material mat, Flags flag) {
@@ -555,7 +553,7 @@ public class FlagPermissions {
             return FlagState.TRUE;
         } else if (flagstate.equalsIgnoreCase("false") || flagstate.equalsIgnoreCase("f")) {
             return FlagState.FALSE;
-        } else if (flagstate.equalsIgnoreCase("remove") || flagstate.equalsIgnoreCase("r")) {
+        } else if (flagstate.equalsIgnoreCase("remove") || flagstate.equalsIgnoreCase("r") || flagstate.equalsIgnoreCase("neither")) {
             return FlagState.NEITHER;
         } else {
             return FlagState.INVALID;
@@ -1090,27 +1088,37 @@ public class FlagPermissions {
 
     @Deprecated
     public Set<String> getposibleFlags() {
-        return getAllPosibleFlags();
+        return getAllPossibleFlags();
     }
 
-    public static Set<String> getAllPosibleFlags() {
+    public static Set<String> getAllPossibleFlags() {
         Set<String> t = new HashSet<String>();
         t.addAll(FlagPermissions.validFlags);
         t.addAll(FlagPermissions.validPlayerFlags);
         return t;
     }
 
+    @Deprecated
     public static ArrayList<String> getPosibleAreaFlags() {
+        return getPossibleAreaFlags();
+    }
+
+    public static ArrayList<String> getPossibleAreaFlags() {
         return FlagPermissions.validAreaFlags;
     }
 
+    @Deprecated
     public List<String> getPosibleFlags(Player player, boolean residence, boolean resadmin) {
+        return getPossibleFlags(player, residence, resadmin);
+    }
+
+    public List<String> getPossibleFlags(Player player, boolean residence, boolean resadmin) {
         Set<String> flags = new HashSet<String>();
         for (Entry<String, Boolean> one : Residence.getInstance().getPermissionManager().getAllFlags().getFlags().entrySet()) {
             if (!one.getValue() && !resadmin && !ResPerm.flag_$1.hasSetPermission(player, one.getKey().toLowerCase()))
                 continue;
 
-            if (!residence && !getAllPosibleFlags().contains(one.getKey()))
+            if (!residence && !getAllPossibleFlags().contains(one.getKey()))
                 continue;
 
             String fname = one.getKey();

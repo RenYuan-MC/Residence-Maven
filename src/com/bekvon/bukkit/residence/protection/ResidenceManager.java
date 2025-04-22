@@ -37,6 +37,7 @@ import com.bekvon.bukkit.residence.api.ResidenceInterface;
 import com.bekvon.bukkit.residence.containers.Flags;
 import com.bekvon.bukkit.residence.containers.MinimizeFlags;
 import com.bekvon.bukkit.residence.containers.MinimizeMessages;
+import com.bekvon.bukkit.residence.containers.ResAdmin;
 import com.bekvon.bukkit.residence.containers.ResidencePlayer;
 import com.bekvon.bukkit.residence.containers.Visualizer;
 import com.bekvon.bukkit.residence.containers.lm;
@@ -56,6 +57,7 @@ import net.Zrips.CMILib.Colors.CMIChatColor;
 import net.Zrips.CMILib.Container.CMINumber;
 import net.Zrips.CMILib.Container.PageInfo;
 import net.Zrips.CMILib.Logs.CMIDebug;
+import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.Version.Version;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
@@ -118,7 +120,6 @@ public class ResidenceManager implements ResidenceInterface {
 
             ClaimedResidence subres = residence.getSubzoneByLoc(loc);
             return subres == null ? residence : subres;
-
         }
         return null;
     }
@@ -210,17 +211,17 @@ public class ResidenceManager implements ResidenceInterface {
 
     @Override
     public boolean addResidence(String name, Location loc1, Location loc2) {
-        return this.addResidence(name, plugin.getServerLandName(), loc1, loc2);
+        return this.addResidence(null, name, null, plugin.getServerLandName(), loc1, loc2, true);
     }
 
     @Override
     public boolean addResidence(String name, String owner, Location loc1, Location loc2) {
-        return this.addResidence(null, owner, name, loc1, loc2, true);
+        return this.addResidence(null, owner, null, name, loc1, loc2, true);
     }
 
     @Override
     public boolean addResidence(Player player, String name, Location loc1, Location loc2, boolean resadmin) {
-        return this.addResidence(player, player.getName(), name, loc1, loc2, resadmin);
+        return this.addResidence(player, player.getName(), player.getUniqueId(), name, loc1, loc2, resadmin);
     }
 
     public boolean addResidence(Player player, String owner, String name, Location loc1, Location loc2, boolean resadmin) {
@@ -248,21 +249,29 @@ public class ResidenceManager implements ResidenceInterface {
             return false;
         }
 
+        if (owner == null)
+            owner = plugin.getServerLandName();
+        if (ownerUUId == null)
+            ownerUUId = plugin.getServerUUID();
+
         ResidencePlayer rPlayer = plugin.getPlayerManager().getResidencePlayer(player);
+        PermissionGroup group = plugin.getPermissionManager().getDefaultGroup();
 
-        PermissionGroup group = rPlayer.getGroup();
-//	PermissionGroup group = plugin.getPermissionManager().getGroup(owner, loc1.getWorld().getName());
-        if (!resadmin && !group.canCreateResidences() && !ResPerm.create.hasPermission(player, lm.General_NoPermission)) {
-            return false;
-        }
+        if (rPlayer != null) {
+            group = rPlayer.getGroup();
 
-        if (!resadmin && !ResPerm.create.hasPermission(player, true)) {
-            return false;
-        }
+            if (!resadmin && !group.canCreateResidences() && !ResPerm.create.hasPermission(player, lm.General_NoPermission)) {
+                return false;
+            }
 
-        if (rPlayer.getResAmount() >= rPlayer.getMaxRes() && !resadmin) {
-            plugin.msg(player, lm.Residence_TooMany);
-            return false;
+            if (!resadmin && !ResPerm.create.hasPermission(player, true)) {
+                return false;
+            }
+
+            if (rPlayer.getResAmount() >= rPlayer.getMaxRes() && !resadmin) {
+                plugin.msg(player, lm.Residence_TooMany);
+                return false;
+            }
         }
 
         CuboidArea newArea = new CuboidArea(loc1, loc2);
@@ -282,11 +291,11 @@ public class ResidenceManager implements ResidenceInterface {
 
         if (!newRes.addArea(player, newArea, "main", resadmin, false))
             return false;
-        
+
         if (player != null && newArea.containsLoc(player.getLocation())) {
             newRes.setTpLoc(player, resadmin);
         }
-        
+
         if (Residence.getInstance().getConfigManager().isChargeOnCreation() && !newRes.isSubzone() && plugin.getConfigManager().enableEconomy() && !resadmin) {
             double chargeamount = newArea.getCost(group);
 
@@ -304,7 +313,7 @@ public class ResidenceManager implements ResidenceInterface {
 
         residences.put(resName.toLowerCase(), newRes);
 
-        calculateChunks(resName);
+        calculateChunks(newRes);
         plugin.getLeaseManager().removeExpireTime(newRes);
         plugin.getPlayerManager().addResidence(newRes.getOwner(), newRes);
 
@@ -358,7 +367,7 @@ public class ResidenceManager implements ResidenceInterface {
     public void listResidences(CommandSender sender, String targetplayer, int page, boolean showhidden, boolean onlyHidden, boolean resadmin, World world) {
         if (targetplayer == null)
             targetplayer = sender.getName();
-        if (showhidden && !plugin.isResAdminOn(sender) && !sender.getName().equalsIgnoreCase(targetplayer)) {
+        if (showhidden && !ResAdmin.isResAdmin(sender) && !sender.getName().equalsIgnoreCase(targetplayer)) {
             showhidden = false;
         } else if (sender.getName().equalsIgnoreCase(targetplayer))
             showhidden = true;
@@ -657,7 +666,7 @@ public class ResidenceManager implements ResidenceInterface {
             return;
 
         CuboidArea[] arr = res.getAreaArray();
-        CMIScheduler.runTaskAsynchronously(() -> {
+        CMIScheduler.runTaskAsynchronously(plugin, () -> {
             ChunkSnapshot chunkSnapshot = null;
             int chunkX = 0;
             int chunkZ = 0;
@@ -703,11 +712,9 @@ public class ResidenceManager implements ResidenceInterface {
                     }
                 }
             }
-            CMIScheduler.runTask(() -> {
-                for (Location one : locations) {
-                    CMIScheduler.runAtLocation(one, () -> one.getBlock().setType(Material.AIR));
-                }
-            });
+            for (Location one : locations) {
+                CMIScheduler.runAtLocation(one, () -> one.getBlock().setType(Material.AIR));
+            }
         });
     }
 
@@ -907,19 +914,19 @@ public class ResidenceManager implements ResidenceInterface {
     }
 
     public void mirrorPerms(Player reqPlayer, String targetArea, String sourceArea, boolean resadmin) {
-        ClaimedResidence reciever = this.getByName(targetArea);
+        ClaimedResidence receiver = this.getByName(targetArea);
         ClaimedResidence source = this.getByName(sourceArea);
-        if (source == null || reciever == null) {
+        if (source == null || receiver == null) {
             plugin.msg(reqPlayer, lm.Invalid_Residence);
             return;
         }
         if (!resadmin) {
-            if (!reciever.getPermissions().hasResidencePermission(reqPlayer, true) || !source.getPermissions().hasResidencePermission(reqPlayer, true)) {
+            if (!receiver.getPermissions().hasResidencePermission(reqPlayer, true) || !source.getPermissions().hasResidencePermission(reqPlayer, true)) {
                 plugin.msg(reqPlayer, lm.General_NoPermission);
                 return;
             }
         }
-        reciever.getPermissions().applyTemplate(reqPlayer, source.getPermissions(), resadmin);
+        receiver.getPermissions().applyTemplate(reqPlayer, source.getPermissions(), resadmin);
     }
 
     public Map<String, Object> save() {
@@ -1070,7 +1077,6 @@ public class ResidenceManager implements ResidenceInterface {
                         continue;
                     worldnames.add(name.substring(Residence.saveFilePrefix.length(), name.length() - 4));
                 }
-
             }
             plugin.getServ().getWorlds().forEach((w) -> {
                 worldnames.add(w.getName());
@@ -1085,15 +1091,29 @@ public class ResidenceManager implements ResidenceInterface {
         return worldnames;
     }
 
+    int batchSize = 1000000;
+    ExecutorService executorService = null;
+
     public void load(Map<String, Object> root) throws Exception {
         if (root == null)
             return;
         residences.clear();
-        for (String worldName : getWorldNames()) {
+
+        int numCores = Runtime.getRuntime().availableProcessors();
+
+        numCores = CMINumber.clamp(numCores, 1, numCores - 1);
+
+        executorService = Executors.newFixedThreadPool(numCores);
+        batchSize = (int) Math.ceil(root.entrySet().size() / (double) numCores);
+
+        for (Entry<String, Object> worldSet : root.entrySet()) {
+
             long time = System.currentTimeMillis();
 
+            String worldName = worldSet.getKey();
             @SuppressWarnings("unchecked")
-            Map<String, Object> reslist = (Map<String, Object>) root.get(worldName);
+            Map<String, Object> reslist = (Map<String, Object>) worldSet.getValue();
+
             if (!plugin.isDisabledWorld(worldName) && !plugin.getConfigManager().CleanerStartupLog)
                 Bukkit.getConsoleSender().sendMessage(plugin.getPrefix() + " Loading " + worldName + " data into memory...");
             if (reslist != null) {
@@ -1107,12 +1127,14 @@ public class ResidenceManager implements ResidenceInterface {
             }
 
             long pass = System.currentTimeMillis() - time;
-            String PastTime = pass > 1000 ? String.format("%.2f", (pass / 1000F)) + " sec" : pass + " ms";
+            String pastTime = pass > 1000 ? String.format("%.2f", (pass / 1000F)) + " sec" : pass + " ms";
 
             if (!plugin.isDisabledWorld(worldName))
-                Bukkit.getConsoleSender().sendMessage(plugin.getPrefix() + " Loaded " + worldName + " data into memory. (" + PastTime + ") -> " + (reslist == null ? "0" : reslist.size())
+                CMIMessages.consoleMessage(plugin.getPrefix() + "&f Loaded &e" + worldName + "&f data into memory. (&e" + pastTime + "&f) -> " + (reslist == null ? "?" : reslist.size())
                     + " residences");
         }
+
+        executorService.shutdown();
 
         clearLoadChache();
     }
@@ -1128,11 +1150,7 @@ public class ResidenceManager implements ResidenceInterface {
 
         chunkCount = 0;
 
-        int numCores = Runtime.getRuntime().availableProcessors();
-        ExecutorService executorService = Executors.newFixedThreadPool(numCores);
-
         List<Future<Void>> futures = new ArrayList<>();
-        int batchSize = (int) Math.ceil(root.entrySet().size() / (double) numCores);
 
         batchSize = CMINumber.clamp(batchSize, 500, root.entrySet().size());
 
@@ -1154,72 +1172,81 @@ public class ResidenceManager implements ResidenceInterface {
             batch = new ArrayList<>();
             i++;
 
-            Future<Void> future = executorService.submit(() -> {
-                for (Entry<String, Object> currentEntry : currentBatch) {
-                    try {
-                        ClaimedResidence residence = ClaimedResidence.load(worldName, (Map<String, Object>) currentEntry.getValue(), null, plugin);
-
-                        if (residence == null) {
-                            continue;
-                        }
-
-                        if (residence.getPermissions().getOwnerUUID().toString().equals(plugin.getServerLandUUID()) &&
-                            !residence.getOwner().equalsIgnoreCase("Server land") &&
-                            !residence.getOwner().equalsIgnoreCase(plugin.getServerLandName())) {
-                            continue;
-                        }
-
-                        if (residence.getOwner().equalsIgnoreCase("Server land")) {
-                            residence.getPermissions().setOwner(plugin.getServerLandName(), false);
-                        }
-
-                        String resName = currentEntry.getKey().toLowerCase();
-
-                        int increment = getNameIncrement(resName);
-
-                        if (residence.getResidenceName() == null)
-                            residence.setName(currentEntry.getKey());
-
-                        if (increment > 0) {
-                            residence.setName(residence.getResidenceName() + increment);
-                            resName += increment;
-                        }
-
-                        for (ChunkRef chunk : getChunks(residence)) {
-                            retRes.compute(chunk, (k, v) -> {
-                                if (v == null) {
-                                    v = new ArrayList<>();
-                                }
-                                v.add(residence);
-                                return v;
-                            });
-                        }
-
-                        plugin.getPlayerManager().addResidence(residence.getOwner(), residence);
-
-                        residences.put(resName, residence);
-                    } catch (Exception ex) {
-                        Bukkit.getConsoleSender().sendMessage(plugin.getPrefix() + ChatColor.RED + " Failed to load residence (" + currentEntry.getKey() + ")! Reason:" + ex.getMessage()
-                            + " Error Log:");
-                        Logger.getLogger(ResidenceManager.class.getName()).log(Level.SEVERE, null, ex);
-                        if (plugin.getConfigManager().stopOnSaveError()) {
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                }
-                return null;
-            });
-
-            futures.add(future);
+            futures.add(processBatch(worldName, currentBatch, retRes));
         }
+
+        if (!batch.isEmpty())
+            futures.add(processBatch(worldName, batch, retRes));
 
         for (Future<Void> future : futures) {
             future.get();
         }
 
-        executorService.shutdown();
-
         return retRes;
+    }
+
+    private Future<Void> processBatch(String worldName, List<Entry<String, Object>> currentBatch, Map<ChunkRef, List<ClaimedResidence>> retRes) {
+        return executorService.submit(() -> {
+            for (Entry<String, Object> currentEntry : currentBatch) {
+                try {
+                    ClaimedResidence residence = ClaimedResidence.load(worldName, (Map<String, Object>) currentEntry.getValue(), null, plugin);
+                    if (residence == null) {
+                        continue;
+                    }
+
+                    if (residence.getPermissions().getOwnerUUID().toString().equals(plugin.getServerLandUUID()) &&
+                        !residence.getOwner().equalsIgnoreCase("Server land") &&
+                        !residence.getOwner().equalsIgnoreCase(plugin.getServerLandName())) {
+                        continue;
+                    }
+
+                    if (residence.getOwner().equalsIgnoreCase("Server land")) {
+                        residence.getPermissions().setOwner(plugin.getServerLandName(), false);
+                    }
+
+                    String resName = currentEntry.getKey().toLowerCase();
+
+                    int increment = getNameIncrement(resName);
+
+                    if (residence.getResidenceName() == null)
+                        residence.setName(currentEntry.getKey());
+
+                    if (increment > 0) {
+                        residence.setName(residence.getResidenceName() + increment);
+                        resName += increment;
+                    }
+
+                    List<ChunkRef> chunks = getChunks(residence);
+
+                    if (chunks.size() > 1000000)
+                        Bukkit.getConsoleSender().sendMessage(plugin.getPrefix() + ChatColor.YELLOW + " Detected extensively big residence area (" + currentEntry.getKey() + ") which covers " + chunks
+                            .size() + " chunks!");
+
+                    for (ChunkRef chunk : chunks) {
+                        retRes.compute(chunk, (k, v) -> {
+                            if (v == null) {
+                                v = new ArrayList<>(1);
+                            }
+                            v.add(residence);
+                            chunkCount++;
+                            return v;
+                        });
+                    }
+
+                    plugin.getPlayerManager().addResidence(residence.getOwner(), residence);
+
+                    residences.put(resName, residence);
+                } catch (Exception ex) {
+                    Bukkit.getConsoleSender().sendMessage(plugin.getPrefix() + ChatColor.RED + " Failed to load residence (" + currentEntry.getKey() + ")! Reason:" + ex.getMessage()
+                        + " Error Log:");
+                    Logger.getLogger(ResidenceManager.class.getName()).log(Level.SEVERE, null, ex);
+                    if (plugin.getConfigManager().stopOnSaveError()) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            }
+            return null;
+        });
     }
 
     // Old method for single core loading
@@ -1314,30 +1341,34 @@ public class ResidenceManager implements ResidenceInterface {
     }
 
     public boolean renameResidence(Player player, String oldName, String newName, boolean resadmin) {
-        if (!ResPerm.rename.hasPermission(player, true)) {
+        return this.renameResidence((CommandSender) player, oldName, newName, resadmin);
+    }
+
+    public boolean renameResidence(CommandSender sender, String oldName, String newName, boolean resadmin) {
+        if (!ResPerm.rename.hasPermission(sender, true)) {
             return false;
         }
 
         if (!plugin.validName(newName)) {
-            plugin.msg(player, lm.Invalid_NameCharacters);
+            plugin.msg(sender, lm.Invalid_NameCharacters);
             return false;
         }
         ClaimedResidence res = this.getByName(oldName);
         if (res == null) {
-            plugin.msg(player, lm.Invalid_Residence);
+            plugin.msg(sender, lm.Invalid_Residence);
             return false;
         }
 
         if (res.getRaid().isRaidInitialized() && !resadmin) {
-            plugin.msg(player, lm.Raid_cantDo);
+            plugin.msg(sender, lm.Raid_cantDo);
             return false;
         }
 
         oldName = res.getName();
-        if (res.getPermissions().hasResidencePermission(player, true) || resadmin) {
+        if (res.getPermissions().hasResidencePermission(sender, true) || resadmin) {
             if (res.getParent() == null) {
                 if (residences.containsKey(newName.toLowerCase())) {
-                    plugin.msg(player, lm.Residence_AlreadyExists, newName);
+                    plugin.msg(sender, lm.Residence_AlreadyExists, newName);
                     return false;
                 }
 
@@ -1355,25 +1386,25 @@ public class ResidenceManager implements ResidenceInterface {
                 residences.put(newName.toLowerCase(), res);
                 residences.remove(oldName.toLowerCase());
 
-                calculateChunks(newName);
+                calculateChunks(res);
 
                 plugin.getSignUtil().updateSignResName(res);
 
-                plugin.msg(player, lm.Residence_Rename, oldName, newName);
+                plugin.msg(sender, lm.Residence_Rename, oldName, newName);
 
                 return true;
             }
             String[] oldname = oldName.split("\\.");
             ClaimedResidence parent = res.getParent();
 
-            boolean feed = parent.renameSubzone(player, oldname[oldname.length - 1], newName, resadmin);
+            boolean feed = parent.renameSubzone(sender, oldname[oldname.length - 1], newName, resadmin);
 
             plugin.getSignUtil().updateSignResName(res);
 
             return feed;
         }
 
-        plugin.msg(player, lm.General_NoPermission);
+        plugin.msg(sender, lm.General_NoPermission);
 
         return false;
     }
@@ -1431,7 +1462,7 @@ public class ResidenceManager implements ResidenceInterface {
             return;
         // Fix phrases here
         plugin.msg(reqPlayer, lm.Residence_Give, residence, giveplayer.getName());
-        plugin.msg(giveplayer, lm.Residence_Recieve, residence, reqPlayer.getName());
+        plugin.msg(giveplayer, lm.Residence_Received, residence, reqPlayer.getName());
         plugin.getSignUtil().updateSignResName(res);
         if (includeSubzones)
             for (ClaimedResidence one : res.getSubzones()) {
@@ -1449,20 +1480,21 @@ public class ResidenceManager implements ResidenceInterface {
         while (it.hasNext()) {
             ClaimedResidence next = it.next();
 
-            if (next.getPermissions().getWorldName().equals(world)) {
-                if (playerExceptions != null && !playerExceptions.isEmpty()) {
-                    if (playerExceptions.contains(next.getOwner().toLowerCase()))
-                        continue;
+            if (!next.getPermissions().getWorldName().equals(world))
+                continue;
 
-                    if (playerExceptions.contains(next.getOwnerUUID().toString()))
-                        continue;
-                }
+            if (playerExceptions != null && !playerExceptions.isEmpty()) {
+                if (playerExceptions.contains(next.getOwner().toLowerCase()))
+                    continue;
 
-                cleanResidenceRecords(next, false);
-
-                it.remove();
-                count++;
+                if (playerExceptions.contains(next.getOwnerUUID().toString()))
+                    continue;
             }
+
+            cleanResidenceRecords(next, false);
+
+            it.remove();
+            count++;
         }
         chunkResidences.remove(world);
         chunkResidences.put(world, new HashMap<ChunkRef, List<ClaimedResidence>>());
@@ -1471,8 +1503,6 @@ public class ResidenceManager implements ResidenceInterface {
         } else {
             sender.sendMessage(ChatColor.RED + "Removed " + ChatColor.YELLOW + count + ChatColor.RED + " residences in world: " + ChatColor.YELLOW + world);
         }
-
-//	plugin.getPlayerManager().fillList();
     }
 
     private void cleanResidenceRecords(ClaimedResidence res, boolean removeSigns) {
@@ -1497,46 +1527,62 @@ public class ResidenceManager implements ResidenceInterface {
         return residences;
     }
 
+    @Deprecated
     public void removeChunkList(String name) {
         if (name == null)
             return;
         name = name.toLowerCase();
         ClaimedResidence res = residences.get(name);
+
         if (res == null)
             return;
-        String world = res.getWorld();
-        if (chunkResidences.get(world) == null)
-            return;
-        for (ChunkRef chunk : getChunks(res)) {
-            List<ClaimedResidence> ress = new ArrayList<>();
-            if (chunkResidences.get(world).containsKey(chunk)) {
-                ress.addAll(chunkResidences.get(world).get(chunk));
-            }
-
-            ress.remove(res);
-            chunkResidences.get(world).put(chunk, ress);
-        }
-
+        removeChunkList(res);
     }
 
-    public void calculateChunks(String name) {
+    public void removeChunkList(ClaimedResidence res) {
+        if (res == null)
+            return;
+        String world = res.getPermissions().getWorldName();
+
+        Map<ChunkRef, List<ClaimedResidence>> worldChunks = chunkResidences.get(world);
+
+        if (worldChunks == null)
+            return;
+
+        List<ChunkRef> chunks = getChunks(res);
+
+        for (ChunkRef chunk : chunks) {
+            List<ClaimedResidence> ress = worldChunks.get(chunk);
+            if (ress == null)
+                continue;
+            ress.remove(res);
+        }
+    }
+
+    @Deprecated
+    public void calculateChunks2(String name) {
         if (name == null)
             return;
         name = name.toLowerCase();
         ClaimedResidence res = residences.get(name);
         if (res == null)
             return;
-        String world = res.getWorld();
-        if (chunkResidences.get(world) == null) {
-            chunkResidences.put(world, new HashMap<ChunkRef, List<ClaimedResidence>>());
-        }
-        for (ChunkRef chunk : getChunks(res)) {
-            List<ClaimedResidence> ress = new ArrayList<>();
-            if (chunkResidences.get(world).containsKey(chunk)) {
-                ress.addAll(chunkResidences.get(world).get(chunk));
-            }
-            ress.add(res);
-            chunkResidences.get(world).put(chunk, ress);
+        calculateChunks(res);
+    }
+
+    public void calculateChunks(ClaimedResidence res) {
+        if (res == null)
+            return;
+        String world = res.getPermissions().getWorldName();
+
+        Map<ChunkRef, List<ClaimedResidence>> worldChunks = chunkResidences.computeIfAbsent(world, k -> new HashMap<ChunkRef, List<ClaimedResidence>>());
+
+        List<ChunkRef> chunks = getChunks(res);
+
+        for (ChunkRef chunk : chunks) {
+            List<ClaimedResidence> resList = worldChunks.computeIfAbsent(chunk, k -> new ArrayList<ClaimedResidence>());
+            if (!resList.contains(res))
+                resList.add(res);
         }
     }
 

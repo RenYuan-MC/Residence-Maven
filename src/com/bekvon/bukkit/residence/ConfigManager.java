@@ -79,6 +79,7 @@ public class ConfigManager {
     protected boolean BlockAnyTeleportation;
     protected CMIMaterial infoTool;
     protected int AutoCleanUpDays;
+    protected boolean AutoCleanDetailsOnUnknown;
     protected boolean AutoCleanUpRegenerate;
     protected boolean CanTeleportIncludeOwner;
     private boolean LoadEveryWorld;
@@ -250,6 +251,7 @@ public class ConfigManager {
     protected List<RandomTeleport> RTeleport = new ArrayList<RandomTeleport>();
 
     protected List<String> DisabledWorldsList = new ArrayList<String>();
+    protected List<String> EnabledWorldsList = new ArrayList<String>();
 
     protected int rtCooldown;
     protected int rtMaxTries;
@@ -540,7 +542,7 @@ public class ConfigManager {
         cfg.addComment("Global.GroupedFlags", "These are grouped flags, so when using /res pset nickname redstone true, player will get all flags in list, same when setting to false or removing them.");
         cfg.addComment("Global.GroupedFlags.trusted", "This group of flags will be used for padd sub command");
         cfg.addComment("Global.TotalFlagDisabling", "Completely disables defined flag which will no longer be accesable even with resadmin command",
-            "Can save some of the server processing resources if you dont want to utilize specific checks for specific flags");
+            "Can save some of the server processing resources if you don't want to utilize specific checks for specific flags");
         cfg.addComment("Global.GroupDefault", "These are default group flags applied to a residence made by a user of any group.");
         cfg.addComment("ItemList", "this is where you can create blacklists / whitelists");
         cfg.addComment("ItemList.DefaultList", "list name is not important, as long as it is unique. Its good to use a descripive name.");
@@ -634,7 +636,7 @@ public class ConfigManager {
 
         c.addComment("Global", "These are Global Settings for Residence.");
 
-        c.addComment("Global.UUIDConvertion", "Starts UUID conversion on plugin startup", "DONT change this if you are not sure what you doing");
+        c.addComment("Global.UUIDConvertion", "Starts UUID conversion on plugin startup", "DON'T change this if you are not sure what you doing");
         UUIDConvertion = c.get("Global.UUIDConvertion", true);
 
         c.addComment("Global.OfflineMode",
@@ -679,7 +681,7 @@ public class ConfigManager {
 
         c.addComment("Global.Optimizations.LoadEveryWorld", "When enabled we will load data from every single world file even if world doesn't exist but might be loaded later on",
             "Usually only useful when you have multiverse plugin which loads worlds durring server work time");
-        LoadEveryWorld = c.get("Global.Optimizations.LoadEveryWorld", false);
+        LoadEveryWorld = c.get("Global.Optimizations.LoadEveryWorld", true);
 
         c.addComment("Global.Optimizations.CleanerStartupLog", "While enabled we will avoid showing extra feedback lines on startup");
         CleanerStartupLog = c.get("Global.Optimizations.CleanerStartupLog", true);
@@ -693,8 +695,13 @@ public class ConfigManager {
         c.addComment("Global.Optimizations.DefaultWorld", "Name of your main residence world. Usually normal starting world 'World'. Capitalization essential");
         DefaultWorld = c.get("Global.Optimizations.DefaultWorld", defaultWorldName);
 
-        c.addComment("Global.Optimizations.DisabledWorlds.List", "List Of Worlds where this plugin is disabled", "Make sure that world names capitalization is correct");
-        DisabledWorldsList = c.get("Global.Optimizations.DisabledWorlds.List", Arrays.asList("worldNamesHere"));
+        c.addComment("Global.Optimizations.DisabledWorlds.BlackList", "List Of Worlds where this plugin is disabled", "Make sure that world names capitalization is correct",
+            "In case WhiteList contains any entries then this section is ignored entirely");
+        DisabledWorldsList = c.get("Global.Optimizations.DisabledWorlds.BlackList", (List<String>) c.getC().getList("Global.Optimizations.DisabledWorlds.List", new ArrayList<String>()));
+
+        c.addComment("Global.Optimizations.DisabledWorlds.WhiteList", "List Of Worlds where this plugin is enabled", "Make sure that world names capitalization is correct",
+            "In case WhiteList contains any entries then BlackList section is ignored entirely");
+        EnabledWorldsList = c.get("Global.Optimizations.DisabledWorlds.WhiteList", new ArrayList<String>());
 
         c.addComment("Global.Optimizations.DisabledWorlds.DisableListeners", "Disables all listeners in included worlds");
         DisableListeners = c.get("Global.Optimizations.DisabledWorlds.DisableListeners", true);
@@ -740,7 +747,7 @@ public class ConfigManager {
         c.addComment("Global.Optimizations.AutomaticResidenceCreation.Size.Percentage",
             "Value between 1 and 100 which will define size of residence we will create in percentage depending on players permission group");
         ARCSizePercentage = c.get("Global.Optimizations.AutomaticResidenceCreation.Size.Percentage", 50);
-        ARCSizePercentage = ARCSizePercentage < 1 ? 1 : ARCSizePercentage > 100 ? 100 : ARCSizePercentage;
+        ARCSizePercentage = CMINumber.clamp(ARCSizePercentage, 1, 100);
 
         c.addComment("Global.Optimizations.AutomaticResidenceCreation.Size.Min",
             "Value in blocks. While previous percentage will determine general size, this can be used to avoid having tiny residences",
@@ -771,7 +778,7 @@ public class ConfigManager {
         GlobalChatFormat = c.get("Global.Optimizations.GlobalChat.Format", "&c[&e%1&c]");
 
         c.addComment("Global.Optimizations.BlockAnyTeleportation",
-            "When this set to true, any teleportation to residence where player dont have tp flag, action will be denyied",
+            "When this set to true, any teleportation to residence where player don't have tp flag, action will be denyied",
             "This can prevent from teleporting players to residence with 3rd party plugins like esentials /tpa");
         BlockAnyTeleportation = c.get("Global.Optimizations.BlockAnyTeleportation", true);
 
@@ -798,6 +805,8 @@ public class ConfigManager {
                 KickLocation.setPitch(KickPitch.floatValue());
                 KickLocation.setYaw(KickYaw.floatValue());
             }
+        } else {
+            KickLocation = null;
         }
 
         c.addComment("Global.Optimizations.FlyLandLocation.World", "Used when players fly state is being turned to false because of fly flag and there is no solid land where to land for player");
@@ -844,7 +853,7 @@ public class ConfigManager {
 
         // negative potion effect list
         c.addComment("Global.Optimizations.NegativePotionEffects",
-            "Potions containing one of thos effects will be ignored if residence dont have pvp true flag set");
+            "Potions containing one of thos effects will be ignored if residence don't have pvp true flag set");
         NegativePotionEffects = c.get("Global.Optimizations.NegativePotionEffects", Arrays.asList("blindness", "confusion", "harm", "hunger", "poison", "slow",
             "slow_digging", "weakness", "wither"));
 
@@ -873,8 +882,8 @@ public class ConfigManager {
         TeleportDelay = c.get("Global.Tp.TeleportDelay", 3);
         c.addComment("Global.Tp.TeleportTitleMessage", "Show aditional message in title message area when player is teleporting to residence");
         TeleportTitleMessage = c.get("Global.Tp.TeleportTitleMessage", true);
-        
-        c.addComment("Global.Tp.BlockedWorlds", "List of worlds where teleportation using /res tp is not allowed","This only blocks teleportation to those worlds, not from them");
+
+        c.addComment("Global.Tp.BlockedWorlds", "List of worlds where teleportation using /res tp is not allowed", "This only blocks teleportation to those worlds, not from them");
         TeleportBlockedWorlds = c.get("Global.Tp.BlockedWorlds", Arrays.asList("SomeWorldNames"));
         CMIList.toLowerCase(TeleportBlockedWorlds);
 
@@ -979,6 +988,8 @@ public class ConfigManager {
         AutoCleanUp = c.get("Global.AutoCleanUp.Use", false);
         c.addComment("Global.AutoCleanUp.Days", "For how long player should be offline to delete hes residence");
         AutoCleanUpDays = c.get("Global.AutoCleanUp.Days", 60);
+        c.addComment("Global.AutoCleanUp.DetailsOnUnknown", "When enabled in case residence owner can't be determined we will print out some basic information about it into console");
+        AutoCleanDetailsOnUnknown = c.get("Global.AutoCleanUp.DetailsOnUnknown", false);
         c.addComment("Global.AutoCleanUp.Regenerate", "Extra heavy on server and will lag it out while regeneration is ongoing",
             "Do you want to regenerate old residence area",
             "This requires world edit to be present");
@@ -1057,7 +1068,7 @@ public class ConfigManager {
         CreeperExplodeBelow = c.get("Global.AntiGreef.Creeper.ExplodeBelow", false);
         CreeperExplodeBelowLevel = c.get("Global.AntiGreef.Creeper.level", 62);
         // Flow
-        c.addComment("Global.AntiGreef.Flow.Level", "Level from which one to start lava and water flow blocking", "This dont have effect in residence area");
+        c.addComment("Global.AntiGreef.Flow.Level", "Level from which one to start lava and water flow blocking", "This don't have effect in residence area");
         FlowLevel = c.get("Global.AntiGreef.Flow.Level", 63);
         c.addComment("Global.AntiGreef.Flow.NoLavaFlow", "With this set to true, lava flow outside residence is blocked");
         NoLava = c.get("Global.AntiGreef.Flow.NoLavaFlow", false);
@@ -1088,7 +1099,7 @@ public class ConfigManager {
             c.addComment("Global.AntiGreef.ResCleaning.Use",
                 "With this set to true, after player removes its residence, all blocks listed below, will be replaced with air blocks",
                 "Effective way to prevent residence creating near greefing target and then remove it",
-                "ATTENTION! Bigger residence areas could want to create bigger loads on server when cleaning up areas. So dont use this if regular player have access to huge residences. 15 million blocks would be a max limit");
+                "ATTENTION! Bigger residence areas could want to create bigger loads on server when cleaning up areas. So don't use this if regular player have access to huge residences. 15 million blocks would be a max limit");
             UseClean = c.get("Global.AntiGreef.ResCleaning.Use", false);
             c.addComment("Global.AntiGreef.ResCleaning.Level", "Level from whichone you want to replace blocks");
             CleanLevel = c.get("Global.AntiGreef.ResCleaning.Level", 63);
@@ -1218,14 +1229,14 @@ public class ConfigManager {
         rentCheckInterval = c.get("Global.RentCheckInterval", 10);
 
         ELMessageType old = c.getC().isBoolean("Global.ActionBar.General") && c.getC().getBoolean("Global.ActionBar.General") ? ELMessageType.ActionBar
-            : ELMessageType.ChatBox;
+            : ELMessageType.ActionBar;
         old = c.getC().isBoolean("Global.TitleBar.EnterLeave") && c.getC().getBoolean("Global.TitleBar.EnterLeave") ? ELMessageType.TitleBar : old;
 
         c.addComment("Global.Messages.GeneralMessages", "Defines where you want to send residence enter/leave/deny move and similar messages. Possible options: " + ELMessageType.getAllValuesAsString(),
             "TitleBar can have %subtitle% variable to define second line");
         EnterLeaveMessageType = ELMessageType.getByName(c.get("Global.Messages.GeneralMessages", old.toString()));
         if (EnterLeaveMessageType == null || Version.isCurrentEqualOrLower(Version.v1_7_R4))
-            EnterLeaveMessageType = ELMessageType.ChatBox;
+            EnterLeaveMessageType = ELMessageType.ActionBar;
 
         ActionBarOnSelection = c.get("Global.ActionBar.ShowOnSelection", true);
 
@@ -1259,7 +1270,7 @@ public class ConfigManager {
             "Setting this to true server administration wont need to use /resadmin command to access admin command if they are op or have residence.admin permission node.");
         AdminFullAccess = c.get("Global.AdminFullAccess", false);
 
-        c.addComment("Global.MultiWorldPlugin", "This is the name of the plugin you use for multiworld, if you dont have a multiworld plugin you can safely ignore this.",
+        c.addComment("Global.MultiWorldPlugin", "This is the name of the plugin you use for multiworld, if you don't have a multiworld plugin you can safely ignore this.",
             "The only thing this does is check to make sure the multiworld plugin is enabled BEFORE Residence, to ensure properly loading residences for other worlds.");
         multiworldPlugin = c.get("Global.MultiWorldPlugin", "Multiverse-Core");
 
@@ -1443,7 +1454,7 @@ public class ConfigManager {
         }
 
         c.addComment("DynMap.Use", "Enables or disable DynMap Support");
-        DynMapUse = c.get("DynMap.Use", false);
+        DynMapUse = c.get("DynMap.Use", true);
         c.addComment("DynMap.HideByDefault", "When set to true we will hide residence areas by default on dynmap window", "Residences can still be enabled throw provided DynMap option on left top side");
         DynMapHideByDefault = c.get("DynMap.HideByDefault", false);
         c.addComment("DynMap.ShowFlags", "Shows or hides residence flags");
@@ -1476,7 +1487,7 @@ public class ConfigManager {
         DynMapHiddenRegions = c.get("DynMap.HiddenRegions", new ArrayList<String>());
 
         c.addComment("Pl3xMap.Use", "Enables or disable Pl3xMap Support");
-        Pl3xMapUse = c.get("Pl3xMap.Use", false);
+        Pl3xMapUse = c.get("Pl3xMap.Use", true);
         c.addComment("Pl3xMap.HideByDefault", "When set to true we will hide residence areas by default on Pl3xMap window",
             "Residences can still be enabled throw provided Pl3xMap option on left top side");
         Pl3xMapHideByDefault = c.get("Pl3xMap.HideByDefault", false);
@@ -1847,6 +1858,10 @@ public class ConfigManager {
 
     public boolean isAutoCleanUpRegenerate() {
         return AutoCleanUpRegenerate;
+    }
+
+    public boolean isAutoCleanDetailsOnUnknown() {
+        return AutoCleanDetailsOnUnknown;
     }
 
     public boolean isUseClean() {

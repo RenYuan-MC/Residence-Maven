@@ -160,7 +160,7 @@ public class SelectionManager {
 
             if (res2 == null)
                 return false;
-            return res1.getName().equals(res2.getName());
+            return res1.getName().equals(res2.getName()) || res1.getTopParent().equals(res2.getTopParent());
         }
 
         public void vert(boolean resadmin) {
@@ -193,15 +193,16 @@ public class SelectionManager {
 
                 CuboidArea base = this.getBaseArea();
 
-                int y1 = base.getLowVector().getBlockY();
+                int selectedLowY = base.getLowVector().getBlockY();
 
                 int newy = this.getMaxYAllowed();
 
                 if (!resadmin) {
-                    if (group.getMaxHeight() < newy)
-                        newy = group.getMaxHeight();
-                    if (newy - y1 > (group.getMaxY() - 1))
-                        newy = y1 + (group.getMaxY() - 1);
+                    if (group.getHighestYAllowed() < newy)
+                        newy = group.getHighestYAllowed();
+
+                    if (Math.abs(newy - selectedLowY) > (group.getMaxYSize() - 1))
+                        newy = selectedLowY + (group.getMaxYSize() - 1);
                 }
 
                 loc1 = base.getLowLocation();
@@ -221,14 +222,17 @@ public class SelectionManager {
 
                 CuboidArea base = this.getBaseArea();
 
-                int y2 = base.getHighVector().getBlockY();
+                int selectedHighY = base.getHighVector().getBlockY();
 
                 int newy = this.getMinYAllowed();
                 if (!resadmin) {
-                    if (newy < group.getMinHeight())
-                        newy = group.getMinHeight();
-                    if (y2 - newy > (group.getMaxY() - 1))
-                        newy = y2 - (group.getMaxY() - 1);
+
+                    if (newy < group.getLowestYAllowed())
+                        newy = group.getLowestYAllowed();
+
+                    if (Math.abs(selectedHighY - newy) > (group.getMaxYSize() - 1)) {
+                        newy = selectedHighY - (group.getMaxYSize() - 1);
+                    }
                 }
 
                 loc1 = base.getLowLocation();
@@ -274,6 +278,7 @@ public class SelectionManager {
         public CuboidArea getResizedArea() {
 
             CuboidArea area = this.getBaseArea();
+            
             switch (getSelectionRestrictions()) {
             case noLimits:
                 break;
@@ -395,7 +400,7 @@ public class SelectionManager {
     public void placeLoc2(Player player, Location loc, boolean show) {
         if (loc == null)
             return;
-        
+
         getSelection(player).setBaseLoc2(loc);
         if (show) {
             this.afterSelectionUpdate(player);
@@ -531,18 +536,21 @@ public class SelectionManager {
         if (tv != null) {
             tv.cancelAll();
         }
-        CMIScheduler.runTask(() -> {
+        CMIScheduler.runTask(Residence.getInstance(), () -> {
 
-            ResidenceSelectionVisualizationEvent ev = new ResidenceSelectionVisualizationEvent(player, v.getAreas(), v.getErrorAreas());
-            Bukkit.getPluginManager().callEvent(ev);
+            // Only firing selection event if its selection and not one time showing. Check can be removed on later builds and plugins can check if this is short visualization
+            if (!v.isOnce()) {
+                ResidenceSelectionVisualizationEvent ev = new ResidenceSelectionVisualizationEvent(player, v.getAreas(), v.getErrorAreas(), v.isOnce());
+                Bukkit.getPluginManager().callEvent(ev);
 
-            if (ev.isCancelled())
-                return;
+                if (ev.isCancelled())
+                    return;
+            }
 
             vMap.put(player.getUniqueId(), v);
             if (!plugin.isEnabled())
                 return;
-            v.setBaseSheduler(CMIScheduler.runTaskAsynchronously(() -> {
+            v.setBaseSheduler(CMIScheduler.runTaskAsynchronously(Residence.getInstance(), () -> {
                 if (!v.getAreas().isEmpty())
                     MakeBorders(player, false);
                 if (!v.getErrorAreas().isEmpty())
@@ -778,7 +786,7 @@ public class SelectionManager {
 
         if (!plugin.isEnabled())
             return false;
-        CMIScheduler.runTaskAsynchronously(() -> {
+        CMIScheduler.runTaskAsynchronously(Residence.getInstance(), () -> {
 
             int size = locList.size();
             int errorSize = errorLocList.size();
@@ -821,7 +829,7 @@ public class SelectionManager {
         if (v.getStart() + plugin.getConfigManager().getVisualizerShowFor() < System.currentTimeMillis())
             return false;
 
-        CMITask scid = CMIScheduler.runTaskLater(() -> {
+        CMITask scid = CMIScheduler.runTaskLater(Residence.getInstance(), () -> {
             if (player.isOnline()) {
                 MakeBorders(player, error);
             }
@@ -1018,6 +1026,7 @@ public class SelectionManager {
         default:
             break;
         }
+
         updateLocations(player, area.getHighLocation(), area.getLowLocation(), true);
     }
 

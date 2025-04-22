@@ -19,6 +19,7 @@ import com.bekvon.bukkit.residence.protection.ResidencePermissions;
 import com.bekvon.bukkit.residence.utils.GetTime;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
+import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Messages.CMIMessages;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
 import net.Zrips.CMILib.Version.Schedulers.CMITask;
@@ -40,7 +41,6 @@ public class Pl3xMapManager {
 
     public Pl3xMap api;
 
-    private CMITask scheduler = null;
     HashMap<String, SimpleLayer> providers = new HashMap<String, SimpleLayer>();
 
     public Pl3xMapManager(Residence plugin) {
@@ -50,13 +50,11 @@ public class Pl3xMapManager {
     public void fireUpdateAdd(final ClaimedResidence res, final int deep) {
         if (api == null)
             return;
+
         if (res == null)
             return;
 
-        if (scheduler != null)
-            scheduler.cancel();
-
-        scheduler = CMIScheduler.runTaskLater(() -> handleResidenceAdd(res.getName(), res, deep), 10L);
+        CMIScheduler.runTaskLater(plugin, () -> handleResidenceAdd(res.getName(), res, deep), 10L);
     }
 
     public void fireUpdateRemove(final ClaimedResidence res, final int deep) {
@@ -165,15 +163,12 @@ public class Pl3xMapManager {
     private boolean isVisible(String id, String worldname) {
         List<String> visible = plugin.getConfigManager().Pl3xMapVisibleRegions;
         List<String> hidden = plugin.getConfigManager().Pl3xMapHiddenRegions;
-        if (visible != null && visible.size() > 0) {
-            if ((visible.contains(id) == false) && (visible.contains("world:" + worldname) == false)) {
-                return false;
-            }
-        }
-        if (hidden != null && hidden.size() > 0) {
-            if (hidden.contains(id) || hidden.contains("world:" + worldname))
-                return false;
-        }
+        if (visible != null && !visible.isEmpty() && !visible.contains(id) && !visible.contains("world:" + worldname))
+            return false;
+
+        if (hidden != null && !hidden.isEmpty() && (hidden.contains(id) || hidden.contains("world:" + worldname)))
+            return false;
+
         return true;
     }
 
@@ -308,11 +303,8 @@ public class Pl3xMapManager {
         }
 
         for (Entry<String, CuboidArea> oneArea : res.getAreaMap().entrySet()) {
-
             String id = oneArea.getKey() + "." + resid;
-
             provider.removeMarker(id);
-
             if (depth <= plugin.getConfigManager().Pl3xMapLayerSubZoneDepth + 1) {
                 List<ClaimedResidence> subids = res.getSubzones();
                 for (ClaimedResidence one : subids) {
@@ -323,11 +315,8 @@ public class Pl3xMapManager {
     }
 
     public void activate() {
-
         CMIMessages.consoleMessage(Residence.getInstance().getPrefix() + " Pl3xMap residence activated!");
-
         for (Entry<String, ClaimedResidence> one : plugin.getResidenceManager().getResidences().entrySet()) {
-            fireUpdateAdd(one.getValue(), one.getValue().getSubzoneDeep());
             try {
                 handleResidenceAdd(one.getValue().getName(), one.getValue(), one.getValue().getSubzoneDeep());
             } catch (Throwable e) {

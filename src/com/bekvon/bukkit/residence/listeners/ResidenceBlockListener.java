@@ -14,8 +14,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Arrow;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -40,7 +39,6 @@ import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.world.PortalCreateEvent;
@@ -54,6 +52,7 @@ import com.bekvon.bukkit.residence.ConfigManager;
 import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.commands.auto.direction;
 import com.bekvon.bukkit.residence.containers.Flags;
+import com.bekvon.bukkit.residence.containers.ResAdmin;
 import com.bekvon.bukkit.residence.containers.ResidencePlayer;
 import com.bekvon.bukkit.residence.containers.lm;
 import com.bekvon.bukkit.residence.permissions.PermissionGroup;
@@ -70,8 +69,6 @@ import net.Zrips.CMILib.Container.CMIWorld;
 import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.Version.Version;
-import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
-import net.Zrips.CMILib.Version.Teleporters.CMITeleporter;
 
 public class ResidenceBlockListener implements Listener {
 
@@ -84,64 +81,6 @@ public class ResidenceBlockListener implements Listener {
 
     public ResidenceBlockListener(Residence residence) {
         this.plugin = residence;
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onButtonHitWithProjectile(ProjectileHitEvent e) {
-        // Disabling listener if flag disabled globally
-        if (!Flags.button.isGlobalyEnabled())
-            return;
-
-        if (Version.isCurrentEqualOrLower(Version.v1_12_R1))
-            return;
-
-        if (e.getHitBlock() == null)
-            return;
-
-        if (plugin.isDisabledWorldListener(e.getHitBlock().getWorld()))
-            return;
-
-        if (!(e.getEntity().getShooter() instanceof Player))
-            return;
-
-        Player player = (Player) e.getEntity().getShooter();
-
-        Block block = e.getHitBlock().getLocation().clone().add(e.getHitBlockFace().getDirection()).getBlock();
-
-        if (!CMIMaterial.isButton(block.getType()))
-            return;
-
-        FlagPermissions perms = plugin.getPermsByLocForPlayer(block.getLocation(), player);
-
-        boolean hasuse = perms.playerHas(player, Flags.use, true);
-
-        ClaimedResidence res = plugin.getResidenceManager().getByLoc(block.getLocation());
-
-        Flags result = FlagPermissions.getMaterialUseFlagList().get(block.getType());
-        if (result == null)
-            return;
-
-        if (perms.playerHas(player, result, hasuse))
-            return;
-
-        if (res != null && res.getRaid().isUnderRaid() && res.getRaid().isAttacker(player)) {
-            return;
-        }
-
-        switch (result) {
-        case button:
-            if (ResPerm.bypass_button.hasPermission(player, 10000L))
-                return;
-            break;
-        }
-
-        e.setCancelled(true);
-        plugin.msg(player, lm.Flag_Deny, result);
-
-        if (e.getEntity() instanceof Arrow)
-            e.getEntity().remove();
-
-        return;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -163,6 +102,7 @@ public class ResidenceBlockListener implements Listener {
         ClaimedResidence res = plugin.getResidenceManager().getByLoc(e.getInventory().getLocation());
         if (res == null)
             return;
+
         // Fix anvil only when item is picked up
         if (e.getRawSlot() != 2)
             return;
@@ -174,12 +114,15 @@ public class ResidenceBlockListener implements Listener {
         if (Version.isCurrentLower(Version.v1_13_R1)) {
             try {
                 b.getClass().getMethod("setData", byte.class).invoke(b, (byte) 1);
-            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e1) {
+            } catch (Throwable e1) {
                 e1.printStackTrace();
             }
         } else {
-            // Need to fix roTation issue
+            BlockFace face = ((Directional) b.getBlockData()).getFacing();
             b.setType(CMIMaterial.ANVIL.getMaterial());
+            Directional directional = (Directional) b.getBlockData();
+            directional.setFacing(face);
+            b.setBlockData(directional);
         }
     }
 
@@ -277,7 +220,7 @@ public class ResidenceBlockListener implements Listener {
         if (Residence.getInstance().isDisabledWorldListener(loc.getWorld()))
             return true;
 
-        if (Residence.getInstance().isResAdminOn(player)) {
+        if (ResAdmin.isResAdmin(player)) {
             return true;
         }
 
@@ -466,7 +409,7 @@ public class ResidenceBlockListener implements Listener {
             return;
 
         Player player = event.getPlayer();
-        if (plugin.isResAdminOn(player))
+        if (ResAdmin.isResAdmin(player))
             return;
         Block block = event.getBlock();
         if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST)
@@ -508,7 +451,7 @@ public class ResidenceBlockListener implements Listener {
             return;
 
         Player player = event.getPlayer();
-        if (plugin.isResAdminOn(player))
+        if (ResAdmin.isResAdmin(player))
             return;
 
         Block block = event.getBlock();
@@ -539,7 +482,7 @@ public class ResidenceBlockListener implements Listener {
             return;
 
         Player player = event.getPlayer();
-        if (plugin.isResAdminOn(player))
+        if (ResAdmin.isResAdmin(player))
             return;
         Block block = event.getBlock();
         if (block.getType() != Material.CHEST && block.getType() != Material.TRAPPED_CHEST)
@@ -675,34 +618,12 @@ public class ResidenceBlockListener implements Listener {
         plugin.getSelectionManager().placeLoc2(player, cuboid.getHighLocation());
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent event) {
-
-        if (canPlaceBlock(event.getPlayer(), event.getBlock(), true))
-            return;
-
-        event.setCancelled(true);
-
-        if (!Version.isCurrentEqualOrHigher(Version.v1_17_R1) || event.getBlock().getType() != Material.POWDER_SNOW)
-            return;
-
-        BlockData data = ResidencePlayerListener1_17.powder_snow.remove(event.getBlock().getLocation().toString());
-        if (data == null)
-            return;
-
-        Block blockUnder = event.getBlock().getLocation().clone().add(0, -1, 0).getBlock();
-
-        if (data.getMaterial().equals(blockUnder.getType())) {
-            blockUnder.setBlockData(data);
-        }
-    }
-
     public static boolean canPlaceBlock(Player player, Block block, boolean informPlayer) {
         // disabling event on world
         if (Residence.getInstance().isDisabledWorldListener(block.getWorld()))
             return true;
 
-        if (Residence.getInstance().isResAdminOn(player)) {
+        if (ResAdmin.isResAdmin(player)) {
             return true;
         }
 
@@ -1189,7 +1110,7 @@ public class ResidenceBlockListener implements Listener {
                 return;
             Player player = event.getPlayer();
             FlagPermissions perms = plugin.getPermsByLocForPlayer(event.getBlock().getLocation(), player);
-            if (player != null && !perms.playerHas(player, Flags.ignite, true) && !plugin.isResAdminOn(player)) {
+            if (player != null && !perms.playerHas(player, Flags.ignite, true) && !ResAdmin.isResAdmin(player)) {
                 event.setCancelled(true);
                 plugin.msg(player, lm.Flag_Deny, Flags.ignite);
             }

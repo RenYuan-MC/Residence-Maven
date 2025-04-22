@@ -12,20 +12,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
-import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -34,9 +28,10 @@ import com.bekvon.bukkit.residence.ConfigManager;
 import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.chat.ChatChannel;
 import com.bekvon.bukkit.residence.commands.padd;
+import com.bekvon.bukkit.residence.containers.DelayTeleport;
 import com.bekvon.bukkit.residence.containers.Flags;
 import com.bekvon.bukkit.residence.containers.MinimizeMessages;
-import com.bekvon.bukkit.residence.containers.RandomLoc;
+import com.bekvon.bukkit.residence.containers.ResAdmin;
 import com.bekvon.bukkit.residence.containers.ResidencePlayer;
 import com.bekvon.bukkit.residence.containers.Visualizer;
 import com.bekvon.bukkit.residence.containers.lm;
@@ -51,8 +46,6 @@ import com.bekvon.bukkit.residence.event.ResidenceSubzoneCreationEvent;
 import com.bekvon.bukkit.residence.event.ResidenceTPEvent;
 import com.bekvon.bukkit.residence.itemlist.ItemList.ListType;
 import com.bekvon.bukkit.residence.itemlist.ResidenceItemList;
-import com.bekvon.bukkit.residence.listeners.ResidenceBlockListener;
-import com.bekvon.bukkit.residence.listeners.ResidencePlayerListener;
 import com.bekvon.bukkit.residence.permissions.PermissionGroup;
 import com.bekvon.bukkit.residence.permissions.PermissionManager.ResPerm;
 import com.bekvon.bukkit.residence.protection.FlagPermissions.FlagCombo;
@@ -63,20 +56,14 @@ import com.bekvon.bukkit.residence.utils.LocationCheck;
 import com.bekvon.bukkit.residence.utils.LocationUtil;
 import com.bekvon.bukkit.residence.utils.LocationValidity;
 import com.bekvon.bukkit.residence.utils.SafeLocationCache;
-import com.bekvon.bukkit.residence.utils.Utils;
+import com.bekvon.bukkit.residence.utils.Teleporting;
 
 import net.Zrips.CMILib.Colors.CMIChatColor;
-import net.Zrips.CMILib.Container.CMINumber;
-import net.Zrips.CMILib.Container.CMIWorld;
 import net.Zrips.CMILib.Container.PageInfo;
-import net.Zrips.CMILib.Items.CMIMaterial;
 import net.Zrips.CMILib.Locale.LC;
-import net.Zrips.CMILib.Logs.CMIDebug;
 import net.Zrips.CMILib.RawMessages.RawMessage;
 import net.Zrips.CMILib.TitleMessages.CMITitleMessage;
 import net.Zrips.CMILib.Version.Version;
-import net.Zrips.CMILib.Version.PaperMethods.CMIChunkSnapShot;
-import net.Zrips.CMILib.Version.PaperMethods.PaperLib;
 import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
 import net.Zrips.CMILib.Version.Teleporters.CMITeleporter;
 
@@ -537,9 +524,9 @@ public class ClaimedResidence {
         if (resevent.isCancelled())
             return false;
 
-        Residence.getInstance().getResidenceManager().removeChunkList(this.getName());
+        Residence.getInstance().getResidenceManager().removeChunkList(this);
         areas.put(name, area);
-        Residence.getInstance().getResidenceManager().calculateChunks(this.getName());
+        Residence.getInstance().getResidenceManager().calculateChunks(this);
         return true;
     }
 
@@ -714,10 +701,10 @@ public class ClaimedResidence {
             }
         }
 
-        Residence.getInstance().getResidenceManager().removeChunkList(this.getName());
-        areas.remove(name);
+        Residence.getInstance().getResidenceManager().removeChunkList(this);
         areas.put(name, newarea);
-        Residence.getInstance().getResidenceManager().calculateChunks(this.getName());
+        Residence.getInstance().getResidenceManager().calculateChunks(this);
+
         if (player != null)
             Residence.getInstance().msg(player, lm.Area_Update);
         return true;
@@ -1215,7 +1202,7 @@ public class ClaimedResidence {
 
     public void tpToResidence(final Player reqPlayer, final Player targetPlayer, final boolean resadmin) {
 
-        boolean isAdmin = Residence.getInstance().isResAdminOn(reqPlayer) || resadmin;
+        boolean isAdmin = ResAdmin.isResAdmin(reqPlayer) || resadmin;
 
         if (this.getRaid().isRaidInitialized()) {
             if (this.getRaid().isAttacker(targetPlayer) || this.getRaid().isDefender(targetPlayer) && !ConfigManager.RaidDefenderTeleport || !isAdmin) {
@@ -1287,12 +1274,9 @@ public class ClaimedResidence {
         boolean bypassDelay = ResPerm.tpdelaybypass.hasPermission(targetPlayer);
 
         if (Residence.getInstance().getConfigManager().getTeleportDelay() > 0 && !isAdmin && !bypassDelay) {
-
-            Residence.getInstance().msg(reqPlayer, lm.General_TeleportStarted, this.getName(),
-                Residence.getInstance().getConfigManager().getTeleportDelay());
+            Residence.getInstance().msg(reqPlayer, lm.General_TeleportStarted, this.getName(), Residence.getInstance().getConfigManager().getTeleportDelay());
             if (Residence.getInstance().getConfigManager().isTeleportTitleMessage())
                 TpTimer(reqPlayer, Residence.getInstance().getConfigManager().getTeleportDelay());
-            Residence.getInstance().getTeleportDelayMap().add(reqPlayer.getName());
         }
 
         CompletableFuture<Location> future = this.getTeleportLocationASYNC(targetPlayer, false);
@@ -1314,7 +1298,7 @@ public class ClaimedResidence {
             return;
         }
 
-        CMIScheduler.runTask(() -> {
+        CMIScheduler.runTask(Residence.getInstance(), () -> {
             if (Residence.getInstance().getConfigManager().getTeleportDelay() > 0 && !isAdmin && !bypassDelay)
                 performDelaydTp(loc, targetPlayer, reqPlayer, true);
             else
@@ -1323,31 +1307,40 @@ public class ClaimedResidence {
     }
 
     public void TpTimer(final Player player, final int t) {
-        CMITitleMessage.send(player, Residence.getInstance().msg(lm.General_TeleportTitle),
-            Residence.getInstance().msg(lm.General_TeleportTitleTime, t));
-        CMIScheduler.runTaskLater(() -> {
-            if (!Residence.getInstance().getTeleportDelayMap().contains(player.getName()))
-                return;
-            if (t > 1)
-                TpTimer(player, t - 1);
-        }, 20L);
+
+        DelayTeleport old = Teleporting.getOrCreateTeleportDelay(player.getUniqueId());
+        if (old.getMessageTask() != null)
+            old.getMessageTask().cancel();
+
+        old.setRemainingTime(t);
+        old.setMessageTask(CMIScheduler.scheduleSyncRepeatingTask(Residence.getInstance(), () -> {
+            CMITitleMessage.send(player, Residence.getInstance().msg(lm.General_TeleportTitle), Residence.getInstance().msg(lm.General_TeleportTitleTime, old.getRemainingTime()));
+            old.lowerRemainingTime();
+            if (old.getRemainingTime() < 0)
+                old.getMessageTask().cancel();
+        }, 1L, 20L));
     }
 
-    public void performDelaydTp(final Location targloc, final Player targetPlayer, Player reqPlayer,
-        final boolean near) {
+    public void performDelaydTp(final Location targloc, final Player targetPlayer, Player reqPlayer, final boolean near) {
+        if (targetPlayer == null || targloc == null)
+            return;
+
         ResidenceTPEvent tpevent = new ResidenceTPEvent(this, targloc, targetPlayer, reqPlayer);
         Residence.getInstance().getServ().getPluginManager().callEvent(tpevent);
         if (tpevent.isCancelled())
             return;
 
-        CMIScheduler.runAtLocationLater(targloc, () -> {
-            if (targloc == null || targetPlayer == null || !targetPlayer.isOnline())
+        DelayTeleport tpDelayRecord = Teleporting.getOrCreateTeleportDelay(targetPlayer.getUniqueId());
+        if (tpDelayRecord.getTeleportTask() != null)
+            tpDelayRecord.getTeleportTask().cancel();
+
+        tpDelayRecord.setTeleportTask(CMIScheduler.runAtLocationLater(Residence.getInstance(), targloc, () -> {
+            if (!targetPlayer.isOnline())
                 return;
 
-            if (!Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()) && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
+            if (!Teleporting.isUnderTeleportDelay(targetPlayer.getUniqueId()) && Residence.getInstance().getConfigManager().getTeleportDelay() > 0)
                 return;
-            else if (Residence.getInstance().getTeleportDelayMap().contains(targetPlayer.getName()))
-                Residence.getInstance().getTeleportDelayMap().remove(targetPlayer.getName());
+            Teleporting.cancelTeleportDelay(targetPlayer.getUniqueId());
 
             targetPlayer.closeInventory();
             CMITeleporter.teleportAsync(targetPlayer, targloc);
@@ -1356,7 +1349,8 @@ public class ClaimedResidence {
             else
                 Residence.getInstance().msg(targetPlayer, lm.General_TeleportSuccess);
 
-        }, Residence.getInstance().getConfigManager().getTeleportDelay() * 20L);
+        }, Residence.getInstance().getConfigManager().getTeleportDelay() * 20L));
+
     }
 
     private void performInstantTp(final Location targloc, final Player targetPlayer, Player reqPlayer,
@@ -1416,9 +1410,9 @@ public class ClaimedResidence {
     }
 
     public void removeArea(String id) {
-        Residence.getInstance().getResidenceManager().removeChunkList(this.getName());
+        Residence.getInstance().getResidenceManager().removeChunkList(this);
         areas.remove(id);
-        Residence.getInstance().getResidenceManager().calculateChunks(this.getName());
+        Residence.getInstance().getResidenceManager().calculateChunks(this);
     }
 
     public void removeArea(Player player, String id, boolean resadmin) {
@@ -1618,8 +1612,7 @@ public class ClaimedResidence {
     }
 
     @SuppressWarnings("unchecked")
-    public static ClaimedResidence load(String worldName, Map<String, Object> root, ClaimedResidence parent,
-        Residence plugin) throws Exception {
+    public static ClaimedResidence load(String worldName, Map<String, Object> root, ClaimedResidence parent, Residence plugin) throws Exception {
         ClaimedResidence res = new ClaimedResidence();
         if (root == null)
             throw new Exception("Null residence!");
@@ -1820,9 +1813,13 @@ public class ClaimedResidence {
     }
 
     public boolean renameSubzone(Player player, String oldName, String newName, boolean resadmin) {
+        return this.renameSubzone((CommandSender) player, oldName, newName, resadmin);
+    }
+
+    public boolean renameSubzone(CommandSender sender, String oldName, String newName, boolean resadmin) {
 
         if (!Residence.getInstance().validName(newName)) {
-            Residence.getInstance().msg(player, lm.Invalid_NameCharacters);
+            Residence.getInstance().msg(sender, lm.Invalid_NameCharacters);
             return false;
         }
         if (oldName == null)
@@ -1835,24 +1832,22 @@ public class ClaimedResidence {
 
         ClaimedResidence res = subzones.get(oldName);
         if (res == null) {
-            if (player != null)
-                Residence.getInstance().msg(player, lm.Invalid_Subzone);
+            Residence.getInstance().msg(sender, lm.Invalid_Subzone);
             return false;
         }
-        if (player != null && !res.getPermissions().hasResidencePermission(player, true) && !resadmin) {
-            Residence.getInstance().msg(player, lm.General_NoPermission);
+        if (sender != null && !res.getPermissions().hasResidencePermission(sender, true) && !resadmin) {
+            Residence.getInstance().msg(sender, lm.General_NoPermission);
             return false;
         }
         if (subzones.containsKey(newName)) {
-            if (player != null)
-                Residence.getInstance().msg(player, lm.Subzone_Exists, newName);
+            Residence.getInstance().msg(sender, lm.Subzone_Exists, newName);
             return false;
         }
         res.setName(newN);
         subzones.put(newName, res);
         subzones.remove(oldName);
-        if (player != null)
-            Residence.getInstance().msg(player, lm.Subzone_Rename, oldName, newName);
+
+        Residence.getInstance().msg(sender, lm.Subzone_Rename, oldName, newName);
         return true;
     }
 
@@ -2044,7 +2039,12 @@ public class ClaimedResidence {
         return within;
     }
 
+    @Deprecated
     public List<ShopVote> GetShopVotes() {
+        return getAllShopVotes();
+    }
+
+    public List<ShopVote> getAllShopVotes() {
         return ShopVoteList;
     }
 
@@ -2069,8 +2069,10 @@ public class ClaimedResidence {
     }
 
     public boolean kickFromResidence(Player player) {
-        if (!this.containsLoc(player.getLocation()))
-            return false;
+
+        // We might be kicking player who is near residence but not inside of it
+        //if (!this.containsLoc(player.getLocation()))
+        //    return false;
 
         Location loc = Residence.getInstance().getConfigManager().getKickLocation();
         player.closeInventory();
@@ -2084,8 +2086,8 @@ public class ClaimedResidence {
                     LC.info_IncorrectLocation.getLocale();
                     return;
                 }
-                
-                loc1.add(0, 0.4, 0); 
+
+                loc1.add(0, 0.4, 0);
 
                 CMITeleporter.teleportAsync(player, loc1).thenApply(success -> {
                     if (success)

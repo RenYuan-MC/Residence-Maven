@@ -27,17 +27,6 @@
 */
 package com.residence.mcstats;
 
-import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.scheduler.BukkitTask;
-
-import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
-import net.Zrips.CMILib.Version.Schedulers.CMITask;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -55,6 +44,18 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginDescriptionFile;
+
+import com.bekvon.bukkit.residence.Residence;
+
+import net.Zrips.CMILib.Version.Schedulers.CMIScheduler;
+import net.Zrips.CMILib.Version.Schedulers.CMITask;
 
 /**
 * <p> The metrics class obtains data about a plugin and submits statistics about it to the metrics backend. </p> <p>
@@ -224,7 +225,7 @@ public class Metrics {
             }
 
             // Begin hitting the server with glorious data
-            task = CMIScheduler.runTimerAsync(() -> {
+            task = CMIScheduler.runTimerAsync(Residence.getInstance(), () -> {
                 // This has to be synchronized or it can collide with the disable method.
                 synchronized (optOutLock) {
                     // Disable Task, if it is running and the server owner decided to opt-out
