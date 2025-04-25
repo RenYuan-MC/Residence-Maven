@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -412,6 +414,20 @@ public class Residence extends JavaPlugin {
             deleteConfirm = new HashMap<String, String>();
             server = this.getServer();
             dataFolder = this.getDataFolder();
+
+            try {
+                Plugin mv = server.getPluginManager().getPlugin("Multiverse-Core");
+                if (mv != null) {
+                    Field field = mv.getClass().getField("status");
+                    CompletableFuture<?> future = (CompletableFuture<?>) field.get(mv);
+                    if (!future.isDone()) {
+                        future.whenComplete((v,t) -> onEnable());
+                        return;
+                    }
+                }
+
+            } catch (NoSuchFieldException ignored) {
+            }
 
             ResidenceVersion = this.getDescription().getVersion();
             authlist = this.getDescription().getAuthors();
