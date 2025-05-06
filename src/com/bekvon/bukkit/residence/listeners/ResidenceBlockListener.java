@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -95,11 +96,15 @@ public class ResidenceBlockListener implements Listener {
         } catch (Exception | NoSuchMethodError ex) {
             return;
         }
-        Block b = e.getInventory().getLocation().getBlock();
+        Location location = e.getInventory().getLocation();
+        if (location.getX() == 0.0d && location.getY() == 0.0d && location.getZ() == 0.0d)
+            return;
+
+        Block b = location.getBlock();
         if (b == null || !CMIMaterial.isAnvil(b.getType()))
             return;
 
-        ClaimedResidence res = plugin.getResidenceManager().getByLoc(e.getInventory().getLocation());
+        ClaimedResidence res = plugin.getResidenceManager().getByLoc(location);
         if (res == null)
             return;
 
